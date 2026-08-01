@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     ports:
-      - "127.0.0.1:${WEB_PORT:-8080}:${WEB_PORT:-8080}"
+      - "${WEB_PORT:-8080}:${WEB_PORT:-8080}"
     volumes:
       - monitor-data:/data
 
