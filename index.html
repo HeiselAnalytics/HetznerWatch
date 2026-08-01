@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Hetzner Availability</title>
+  <style>
+    :root {
+      --bg: #090d14;
+      --surface: #101722;
+      --surface-raised: #151e2b;
+      --line: #263143;
+      --line-soft: #1c2635;
+      --text: #f4f7fb;
+      --muted: #8c9aaf;
+      --blue: #3d8bfd;
+      --green: #35d07f;
+      --green-soft: #163d2b;
+      --red: #ff5e68;
+      --red-soft: #442127;
+      --amber: #ffbd59;
+      --grey: #536176;
+      --radius: 18px;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(61, 139, 253, .13), transparent 34rem),
+        radial-gradient(circle at 96% 12%, rgba(53, 208, 127, .07), transparent 30rem),
+        var(--bg);
+    }
+
+    button, select { font: inherit; }
+
+    .shell {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0 64px;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 30px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 12px;
+      color: #a8b5c8;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(53, 208, 127, .10);
+    }
+
+    .live-dot.error {
+      background: var(--red);
+      box-shadow: 0 0 0 5px rgba(255, 94, 104, .10);
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 62px);
+      font-weight: 760;
+      letter-spacing: -.055em;
+      line-height: .98;
+    }
+
+    .intro {
+      max-width: 650px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .button, .select-wrap {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      color: #dce5f2;
+      background: rgba(16, 23, 34, .86);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+
+    .button:hover:not(:disabled) {
+      border-color: #42526b;
+      background: var(--surface-raised);
+      transform: translateY(-1px);
+    }
+
+    .button:focus-visible, select:focus-visible, .check-box:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
+    }
+
+    .button.primary {
+      border-color: rgba(61, 139, 253, .45);
+      color: #dceaff;
+      background: rgba(61, 139, 253, .13);
+    }
+
+    .button.active {
+      border-color: rgba(53, 208, 127, .42);
+      color: #c8f8dc;
+      background: rgba(53, 208, 127, .11);
+    }
+
+    .button:disabled { opacity: .55; cursor: not-allowed; }
+
+    .select-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px 0 13px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .notification-diagnostic {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .notification-diagnostic.success { color: #8ceab6; }
+    .notification-diagnostic.error { color: #ff9ba2; }
+    .notification-diagnostic.warning { color: #ffd18a; }
+
+    select {
+      border: 0;
+      outline: 0;
+      color: var(--text);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+      margin-bottom: 18px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(16, 23, 34, .76);
+      backdrop-filter: blur(12px);
+    }
+
+    .metric {
+      min-height: 100px;
+      padding: 22px 24px;
+      border-right: 1px solid var(--line-soft);
+    }
+
+    .metric:last-child { border-right: 0; }
+
+    .metric-label {
+      margin-bottom: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 670;
+      letter-spacing: -.025em;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 18px;
+      margin: 0 3px 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--grey);
+    }
+
+    .legend-swatch.available { background: var(--green); }
+    .legend-swatch.unavailable { background: var(--red); }
+    .legend-swatch.recommended {
+      border: 2px solid var(--amber);
+      background: transparent;
+    }
+
+    .targets { display: grid; gap: 14px; }
+
+    .target-card {
+      overflow: hidden;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(21, 30, 43, .94), rgba(13, 19, 29, .94));
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .15);
+    }
+
+    .target-header {
+      display: grid;
+      grid-template-columns: minmax(220px, .65fr) minmax(320px, 1fr);
+      gap: 24px;
+      padding: 24px 24px 21px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .target-identity {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-orb {
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      border: 1px solid #637086;
+      border-radius: 50%;
+      background: radial-gradient(circle, #708097 0 27%, #252f3e 29% 100%);
+      box-shadow: 0 0 24px rgba(112, 128, 151, .12);
+    }
+
+    .status-orb.available {
+      border-color: rgba(53, 208, 127, .68);
+      background: radial-gradient(circle, #70eca8 0 27%, #154f35 29% 100%);
+      box-shadow: 0 0 28px rgba(53, 208, 127, .20);
+    }
+
+    .status-orb.unavailable {
+      border-color: rgba(255, 94, 104, .62);
+      background: radial-gradient(circle, #ff8991 0 27%, #57242b 29% 100%);
+      box-shadow: 0 0 28px rgba(255, 94, 104, .14);
+    }
+
+    .target-name {
+      margin: 0 0 4px;
+      font-size: 23px;
+      font-weight: 720;
+      letter-spacing: -.025em;
+      text-transform: uppercase;
+    }
+
+    .target-meta { color: var(--muted); font-size: 13px; }
+
+    .target-state {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      text-align: right;
+    }
+
+    .state-label { font-weight: 650; }
+    .state-time { margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+    .recommendation {
+      padding: 5px 8px;
+      border: 1px solid rgba(255, 189, 89, .34);
+      border-radius: 999px;
+      color: #ffd996;
+      background: rgba(255, 189, 89, .08);
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .timeline-section { padding: 20px 24px 22px; }
+
+    .timeline-topline, .timeline-axis {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .timeline-topline { margin-bottom: 12px; }
+
+    .timeline-title {
+      color: #dce4ef;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .timeline-summary { color: var(--muted); font-size: 12px; }
+
+    .timeline-viewport {
+      overflow-x: auto;
+      padding: 3px 1px 9px;
+      scrollbar-width: thin;
+      scrollbar-color: #36445a transparent;
+    }
+
+    .box-strip {
+      display: flex;
+      gap: 4px;
+      min-width: max-content;
+    }
+
+    .check-box {
+      position: relative;
+      width: 12px;
+      height: 39px;
+      flex: 0 0 12px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 4px;
+      background: var(--grey);
+      cursor: crosshair;
+      transition: transform .12s ease, filter .12s ease;
+    }
+
+    .check-box:hover, .check-box:focus-visible {
+      z-index: 2;
+      filter: brightness(1.2);
+      transform: scaleY(1.13);
+    }
+
+    .check-box.available { background: var(--green); }
+    .check-box.unavailable { background: var(--red); }
+    .check-box.error { background: var(--grey); }
+
+    .check-box.recommended::after {
+      position: absolute;
+      right: 2px;
+      bottom: 2px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 1px rgba(9, 13, 20, .75);
+      content: "";
+    }
+
+    .timeline-axis {
+      margin-top: 1px;
+      color: #718097;
+      font-size: 11px;
+    }
+
+    .check-inspector {
+      min-height: 18px;
+      margin-top: 11px;
+      color: #a9b6c8;
+      font-size: 12px;
+    }
+
+    .empty, .global-error {
+      padding: 44px 24px;
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+      background: rgba(16, 23, 34, .45);
+    }
+
+    .global-error { border-color: rgba(255, 94, 104, .35); color: #ffabb0; }
+
+    .notification-note {
+      margin: 20px 3px 0;
+      color: #6f7d91;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 820px) {
+      .shell { width: min(100% - 22px, 1280px); padding-top: 26px; }
+      .masthead { flex-direction: column; }
+      .actions { justify-content: flex-start; }
+      .notification-diagnostic { text-align: left; }
+      .metrics { grid-template-columns: 1fr; }
+      .metric { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .metric:last-child { border-bottom: 0; }
+      .target-header { grid-template-columns: 1fr; gap: 17px; }
+      .target-state { justify-content: flex-start; text-align: left; }
+      .timeline-section, .target-header { padding-left: 18px; padding-right: 18px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">
+          <span class="live-dot" id="connectionDot"></span>
+          <span id="connectionLabel">Verbinde …</span>
+        </div>
+        <h1>Availability,<br>Minute für Minute.</h1>
+        <p class="intro">
+          Jede Box steht für eine Hetzner-Abfrage. Von links nach rechts siehst du,
+          wann ein Servertyp verfügbar, ausgebucht oder nicht prüfbar war.
+        </p>
+      </div>
+      <div class="actions">
+        <label class="select-wrap">
+          Verlauf
+          <select id="historyLimit" aria-label="Anzahl sichtbarer Abfragen">
+            <option value="60">60 Abfragen</option>
+            <option value="120" selected>120 Abfragen</option>
+            <option value="240">240 Abfragen</option>
+            <option value="500">500 Abfragen</option>
+          </select>
+        </label>
+        <button class="button primary" id="notificationButton" type="button">
+          <span aria-hidden="true">◉</span>
+          <span>Benachrichtigungen aktivieren</span>
+        </button>
+        <button class="button" id="notificationTestButton" type="button">
+          <span aria-hidden="true">✦</span>
+          <span>Test senden</span>
+        </button>
+        <button class="button" id="refreshButton" type="button">
+          <span aria-hidden="true">↻</span>
+          <span>Aktualisieren</span>
+        </button>
+        <div class="notification-diagnostic" id="notificationDiagnostic" role="status"></div>
+      </div>
+    </header>
+
+    <section class="metrics" aria-label="Zusammenfassung">
+      <div class="metric">
+        <div class="metric-label">Überwachte Ziele</div>
+        <div class="metric-value" id="targetCount">3</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Abfrageintervall</div>
+        <div class="metric-value" id="pollInterval">60 Sekunden</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Letzte Abfrage</div>
+        <div class="metric-value" id="lastChecked">Noch keine Daten</div>
+      </div>
+    </section>
+
+    <div class="legend" aria-label="Legende">
+      <span class="legend-item"><span class="legend-swatch available"></span>Verfügbar</span>
+      <span class="legend-item"><span class="legend-swatch unavailable"></span>Nicht verfügbar</span>
+      <span class="legend-item"><span class="legend-swatch"></span>Fehler</span>
+      <span class="legend-item"><span class="legend-swatch recommended"></span>Empfohlen</span>
+    </div>
+
+    <section class="targets" id="targetList" aria-live="polite">
+      <div class="empty">Verlauf wird geladen …</div>
+    </section>
+
+    <p class="notification-note">
+      Browser-Benachrichtigungen erscheinen beim Wechsel eines Ziels auf
+      „verfügbar“. Dafür muss diese Seite in einem Browser-Tab geöffnet bleiben;
+      der API-Token wird niemals an den Browser übertragen.
+    </p>
+  </main>
+
+  <script>
+    "use strict";
+
+    const elements = {
+      connectionDot: document.querySelector("#connectionDot"),
+      connectionLabel: document.querySelector("#connectionLabel"),
+      historyLimit: document.querySelector("#historyLimit"),
+      notificationButton: document.querySelector("#notificationButton"),
+      notificationTestButton: document.querySelector("#notificationTestButton"),
+      notificationDiagnostic: document.querySelector("#notificationDiagnostic"),
+      refreshButton: document.querySelector("#refreshButton"),
+      targetCount: document.querySelector("#targetCount"),
+      pollInterval: document.querySelector("#pollInterval"),
+      lastChecked: document.querySelector("#lastChecked"),
+      targetList: document.querySelector("#targetList"),
+    };
+
+    function readPreference(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (_error) {
+        return null;
+      }
+    }
+
+    function writePreference(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (_error) {
+        // Das Dashboard funktioniert auch ohne dauerhafte Browser-Einstellungen.
+      }
+    }
+
+    const storedLimit = Number(readPreference("historyLimit"));
+    const state = {
+      limit: [60, 120, 240, 500].includes(storedLimit) ? storedLimit : 120,
+      initialized: false,
+      maxIds: new Map(),
+      lastAvailability: new Map(),
+      refreshTimer: null,
+      requestInFlight: false,
+      pollIntervalSeconds: 60,
+      notificationWorker: null,
+    };
+
+    elements.historyLimit.value = String(state.limit);
+
+    function targetKey(target) {
+      return `${target.server_type}:${target.location}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatDate(value, includeSeconds = false) {
+      if (!value) return "Noch keine Abfrage";
+      const date = new Date(value);
+      return new Intl.DateTimeFormat("de-CH", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: includeSeconds ? "2-digit" : undefined,
+      }).format(date);
+    }
+
+    function formatInterval(seconds) {
+      if (seconds < 60) return `${seconds} Sekunden`;
+      if (seconds === 60) return "1 Minute";
+      if (seconds % 60 === 0) return `${seconds / 60} Minuten`;
+      return `${seconds} Sekunden`;
+    }
+
+    function statusFor(check) {
+      if (!check) return { css: "error", label: "Noch keine Daten" };
+      if (!check.request_success) return { css: "error", label: "Abfragefehler" };
+      if (check.available) return { css: "available", label: "Verfügbar" };
+      return { css: "unavailable", label: "Nicht verfügbar" };
+    }
+
+    function describeCheck(check) {
+      const status = statusFor(check).label;
+      const time = formatDate(check.checked_at, true);
+      const recommendation = check.recommended ? " · von Hetzner empfohlen" : "";
+      const http = check.http_status_code ? ` · HTTP ${check.http_status_code}` : "";
+      const error = check.error_message ? ` · ${check.error_message}` : "";
+      return `${time} · ${status}${recommendation}${http}${error}`;
+    }
+
+    function renderTarget(target) {
+      const checks = target.checks;
+      const latest = checks.at(-1);
+      const status = statusFor(latest);
+      const successful = checks.filter((check) => check.request_success);
+      const availableCount = successful.filter((check) => check.available).length;
+      const recommendation = latest?.recommended
+        ? '<span class="recommendation">Empfohlen</span>'
+        : "";
+
+      const card = document.createElement("article");
+      card.className = "target-card";
+      card.innerHTML = `
+        <div class="target-header">
+          <div class="target-identity">
+            <span class="status-orb ${status.css}" aria-hidden="true"></span>
+            <div>
+              <h2 class="target-name">${escapeHtml(target.server_type)}</h2>
+              <div class="target-meta">Standort ${escapeHtml(target.location)}</div>
+            </div>
+          </div>
+          <div class="target-state">
+            ${recommendation}
+            <div>
+              <div class="state-label">${status.label}</div>
+              <div class="state-time">${latest ? formatDate(latest.checked_at, true) : "Warte auf erste Abfrage"}</div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-section">
+          <div class="timeline-topline">
+            <div class="timeline-title">Zeitverlauf</div>
+            <div class="timeline-summary">${availableCount} von ${successful.length} erfolgreichen Abfragen verfügbar</div>
+          </div>
+          <div class="timeline-viewport">
+            <div class="box-strip" role="list" aria-label="Abfrageverlauf"></div>
+          </div>
+          <div class="timeline-axis">
+            <span>${checks.length ? formatDate(checks[0].checked_at) : "–"}</span>
+            <span>${checks.length} Abfragen</span>
+            <span>${latest ? formatDate(latest.checked_at) : "–"}</span>
+          </div>
+          <div class="check-inspector">${latest ? escapeHtml(describeCheck(latest)) : "Noch keine Daten gespeichert."}</div>
+        </div>
+      `;
+
+      const strip = card.querySelector(".box-strip");
+      const inspector = card.querySelector(".check-inspector");
+      const latestDescription = latest ? describeCheck(latest) : "Noch keine Daten gespeichert.";
+
+      for (const check of checks) {
+        const checkStatus = statusFor(check);
+        const box = document.createElement("button");
+        const description = describeCheck(check);
+        box.type = "button";
+        box.className = `check-box ${checkStatus.css}${check.recommended ? " recommended" : ""}`;
+        box.title = description;
+        box.setAttribute("aria-label", description);
+        box.setAttribute("role", "listitem");
+        box.addEventListener("mouseenter", () => { inspector.textContent = description; });
+        box.addEventListener("focus", () => { inspector.textContent = description; });
+        box.addEventListener("mouseleave", () => { inspector.textContent = latestDescription; });
+        box.addEventListener("blur", () => { inspector.textContent = latestDescription; });
+        strip.appendChild(box);
+      }
+
+      if (!checks.length) {
+        strip.innerHTML = '<span class="target-meta">Die erste Abfrage läuft in Kürze.</span>';
+      }
+
+      return card;
+    }
+
+    function notificationEnabled() {
+      return readPreference("notificationsEnabled") === "true";
+    }
+
+    function setNotificationDiagnostic(message, type = "") {
+      elements.notificationDiagnostic.textContent = message;
+      elements.notificationDiagnostic.className = `notification-diagnostic${type ? ` ${type}` : ""}`;
+    }
+
+    function pageIsEmbedded() {
+      try {
+        return window.self !== window.top;
+      } catch (_error) {
+        return true;
+      }
+    }
+
+    async function ensureNotificationWorker() {
+      if (!("serviceWorker" in navigator)) return null;
+      if (state.notificationWorker) return state.notificationWorker;
+
+      const registration = await navigator.serviceWorker.register(
+        "/service-worker.js",
+        { scope: "/" },
+      );
+      await navigator.serviceWorker.ready;
+      state.notificationWorker = registration;
+      return registration;
+    }
+
+    async function showBrowserNotification(title, options) {
+      const registration = await ensureNotificationWorker();
+      if (registration) {
+        await registration.showNotification(title, {
+          ...options,
+          data: { ...options.data, url: "/" },
+        });
+        const activeNotifications = await registration.getNotifications({
+          tag: options.tag,
+        });
+        return {
+          method: "Service Worker",
+          confirmed: activeNotifications.length > 0,
+          notification: null,
+        };
+      }
+
+      const notification = new Notification(title, options);
+      return {
+        method: "Notification API",
+        confirmed: true,
+        notification,
+      };
+    }
+
+    async function notifyAvailability(target, check) {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted" || !notificationEnabled()) return;
+
+      try {
+        const delivery = await showBrowserNotification(
+          `${target.server_type.toUpperCase()} ist verfügbar`,
+          {
+            body: `Standort ${target.location}${check.recommended ? " · von Hetzner empfohlen" : ""}`,
+            tag: `hetzner-${targetKey(target)}`,
+            renotify: true,
+          },
+        );
+        if (delivery.notification) delivery.notification.onclick = () => {
+          window.focus();
+          delivery.notification.close();
+        };
+      } catch (error) {
+        setNotificationDiagnostic(
+          `Benachrichtigung fehlgeschlagen: ${error.name}: ${error.message}`,
+          "error",
+        );
+      }
+    }
+
+    function processNotifications(targets) {
+      for (const target of targets) {
+        const key = targetKey(target);
+        const checks = target.checks;
+        const latestId = checks.reduce((maximum, check) => Math.max(maximum, check.id), 0);
+        let previousAvailability = state.lastAvailability.get(key);
+
+        if (!state.initialized) {
+          const latestSuccessful = checks.filter((check) => check.request_success).at(-1);
+          if (latestSuccessful) previousAvailability = latestSuccessful.available;
+        } else {
+          const previousId = state.maxIds.get(key) || 0;
+          let notificationCandidate = null;
+          for (const check of checks.filter((item) => item.id > previousId)) {
+            if (!check.request_success) continue;
+            if (check.available && previousAvailability !== true) {
+              notificationCandidate = check;
+            } else if (!check.available) {
+              notificationCandidate = null;
+            }
+            previousAvailability = check.available;
+          }
+          if (notificationCandidate && previousAvailability === true) {
+            void notifyAvailability(target, notificationCandidate);
+          }
+        }
+
+        state.maxIds.set(key, latestId);
+        if (previousAvailability !== undefined) {
+          state.lastAvailability.set(key, previousAvailability);
+        }
+      }
+      state.initialized = true;
+    }
+
+    function render(payload) {
+      state.pollIntervalSeconds = payload.poll_interval_seconds;
+      processNotifications(payload.targets);
+
+      elements.targetCount.textContent = payload.targets.length;
+      elements.pollInterval.textContent = formatInterval(payload.poll_interval_seconds);
+
+      const latestDates = payload.targets
+        .flatMap((target) => target.checks)
+        .map((check) => check.checked_at)
+        .filter(Boolean)
+        .sort();
+      elements.lastChecked.textContent = latestDates.length
+        ? formatDate(latestDates.at(-1), true)
+        : "Noch keine Daten";
+
+      elements.targetList.innerHTML = "";
+      for (const target of payload.targets) {
+        elements.targetList.appendChild(renderTarget(target));
+      }
+
+      for (const viewport of document.querySelectorAll(".timeline-viewport")) {
+        viewport.scrollLeft = viewport.scrollWidth;
+      }
+    }
+
+    function setConnection(ok, label) {
+      elements.connectionDot.classList.toggle("error", !ok);
+      elements.connectionLabel.textContent = label;
+    }
+
+    async function refresh() {
+      if (state.requestInFlight) return;
+      state.requestInFlight = true;
+      clearTimeout(state.refreshTimer);
+      elements.refreshButton.disabled = true;
+
+      try {
+        const response = await fetch(`/api/history?limit=${state.limit}`, { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+        render(payload);
+        setConnection(true, "Monitor verbunden");
+      } catch (error) {
+        setConnection(false, "Verbindung unterbrochen");
+        elements.targetList.innerHTML = `<div class="global-error">${escapeHtml(error.message)}<br>Neuer Versuch folgt automatisch.</div>`;
+      } finally {
+        state.requestInFlight = false;
+        elements.refreshButton.disabled = false;
+        const delay = Math.max(5000, Math.min(15000, state.pollIntervalSeconds * 250));
+        state.refreshTimer = setTimeout(refresh, delay);
+      }
+    }
+
+    function updateNotificationButton() {
+      const label = elements.notificationButton.querySelector("span:last-child");
+      elements.notificationButton.classList.remove("active");
+      elements.notificationButton.disabled = false;
+      elements.notificationTestButton.disabled = false;
+
+      if (!window.isSecureContext) {
+        label.textContent = "Sicherer Kontext erforderlich";
+        elements.notificationButton.disabled = true;
+        elements.notificationTestButton.disabled = true;
+        setNotificationDiagnostic(
+          "Bitte exakt http://localhost:8080 in einem normalen Browser öffnen.",
+          "error",
+        );
+      } else if (pageIsEmbedded()) {
+        label.textContent = "Externer Browser erforderlich";
+        elements.notificationButton.disabled = true;
+        elements.notificationTestButton.disabled = true;
+        setNotificationDiagnostic(
+          "Benachrichtigungen funktionieren nicht in einer eingebetteten IDE-Vorschau. Öffne die Seite in Safari, Chrome oder Firefox.",
+          "warning",
+        );
+      } else if (!("Notification" in window)) {
+        label.textContent = "Nicht unterstützt";
+        elements.notificationButton.disabled = true;
+        elements.notificationTestButton.disabled = true;
+        setNotificationDiagnostic(
+          "Dieser Browser stellt die Notifications API nicht bereit.",
+          "error",
+        );
+      } else if (Notification.permission === "denied") {
+        label.textContent = "Im Browser blockiert";
+        elements.notificationButton.disabled = true;
+        elements.notificationTestButton.disabled = true;
+        setNotificationDiagnostic(
+          "Berechtigung ist blockiert. Ändere sie in den Website-Einstellungen des Browsers auf ‚Erlauben‘.",
+          "error",
+        );
+      } else if (Notification.permission === "granted" && notificationEnabled()) {
+        label.textContent = "Benachrichtigungen an";
+        elements.notificationButton.classList.add("active");
+        setNotificationDiagnostic(
+          `Browser-Berechtigung erteilt · automatische Meldungen aktiv${state.notificationWorker ? " · Service Worker bereit" : ""}.`,
+          "success",
+        );
+      } else if (Notification.permission === "granted") {
+        label.textContent = "Benachrichtigungen aktivieren";
+        setNotificationDiagnostic(
+          "Browser-Berechtigung erteilt · automatische Meldungen derzeit aus.",
+        );
+      } else {
+        label.textContent = "Benachrichtigungen aktivieren";
+        setNotificationDiagnostic(
+          "Browser-Berechtigung wurde noch nicht angefragt.",
+        );
+      }
+    }
+
+    elements.notificationButton.addEventListener("click", async () => {
+      if (!("Notification" in window)) return;
+
+      if (Notification.permission === "granted" && notificationEnabled()) {
+        writePreference("notificationsEnabled", "false");
+        updateNotificationButton();
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        writePreference("notificationsEnabled", String(permission === "granted"));
+        updateNotificationButton();
+      } catch (error) {
+        setNotificationDiagnostic(
+          `Berechtigungsfehler: ${error.name}: ${error.message}`,
+          "error",
+        );
+      }
+    });
+
+    elements.notificationTestButton.addEventListener("click", async () => {
+      if (!("Notification" in window)) return;
+
+      try {
+        let permission = Notification.permission;
+        if (permission !== "granted") {
+          permission = await Notification.requestPermission();
+        }
+
+        if (permission !== "granted") {
+          writePreference("notificationsEnabled", "false");
+          updateNotificationButton();
+          setNotificationDiagnostic(
+            `Keine Benachrichtigung: Browser-Berechtigung ist „${permission}“.`,
+            "error",
+          );
+          return;
+        }
+
+        writePreference("notificationsEnabled", "true");
+        updateNotificationButton();
+
+        const delivery = await showBrowserNotification(
+          "HetznerWatch: Test erfolgreich",
+          {
+            body: "Browser-Benachrichtigungen sind korrekt eingerichtet.",
+            tag: "hetzner-notification-test",
+            renotify: true,
+          },
+        );
+        updateNotificationButton();
+
+        if (!delivery.confirmed) {
+          setNotificationDiagnostic(
+            `Chrome hat die Meldung über ${delivery.method} nicht in seiner Notification-Liste bestätigt.`,
+            "error",
+          );
+          return;
+        }
+
+        setNotificationDiagnostic(
+          `Chrome hat die Testmeldung über ${delivery.method} bestätigt. Falls sie nicht sichtbar ist: macOS-Mitteilungen oder Fokus blockieren die Anzeige.`,
+          "success",
+        );
+        if (delivery.notification) delivery.notification.onclick = () => {
+          window.focus();
+          delivery.notification.close();
+        };
+      } catch (error) {
+        setNotificationDiagnostic(
+          `Test fehlgeschlagen: ${error.name}: ${error.message}`,
+          "error",
+        );
+      }
+    });
+
+    elements.historyLimit.addEventListener("change", () => {
+      state.limit = Number(elements.historyLimit.value);
+      writePreference("historyLimit", String(state.limit));
+      refresh();
+    });
+
+    elements.refreshButton.addEventListener("click", refresh);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refresh();
+    });
+
+    updateNotificationButton();
+    ensureNotificationWorker()
+      .then(() => updateNotificationButton())
+      .catch((error) => {
+        setNotificationDiagnostic(
+          `Service-Worker-Fehler: ${error.name}: ${error.message}`,
+          "error",
+        );
+      });
+    refresh();
+  </script>
+</body>
+</html>
