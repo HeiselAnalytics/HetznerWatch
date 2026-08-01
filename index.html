@@ -3,175 +3,344 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <title>Hetzner Availability</title>
+  <meta name="color-scheme" content="light dark">
+  <title>HetznerWatch – Server-Verfügbarkeit</title>
+  <script>
+    try {
+      const storedTheme = localStorage.getItem("hetznerWatchTheme");
+      if (storedTheme === "light" || storedTheme === "dark") {
+        document.documentElement.dataset.theme = storedTheme;
+      }
+    } catch (_error) {
+      // Das System-Farbschema bleibt aktiv, wenn Browser-Speicher blockiert ist.
+    }
+  </script>
   <style>
     :root {
-      --bg: #090d14;
-      --surface: #101722;
-      --surface-raised: #151e2b;
-      --line: #263143;
-      --line-soft: #1c2635;
-      --text: #f4f7fb;
-      --muted: #8c9aaf;
-      --blue: #3d8bfd;
-      --green: #35d07f;
-      --green-soft: #163d2b;
-      --red: #ff5e68;
-      --red-soft: #442127;
-      --amber: #ffbd59;
-      --grey: #536176;
-      --radius: 18px;
-      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", sans-serif;
+      color-scheme: light;
+      --font-body: "Noto Sans", "Segoe UI", Arial, sans-serif;
+      --font-heading: Montserrat, "Avenir Next", "Segoe UI", sans-serif;
+      --font-code: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      --background: #ffffff;
+      --foreground: #171717;
+      --card: #ffffff;
+      --sidebar: #fafafa;
+      --secondary: #f5f5f5;
+      --muted-foreground: #737373;
+      --border: #e5e5e5;
+      --border-strong: #a3a3a3;
+      --ring: #a3a3a3;
+      --highlight: #ffaa00;
+      --danger: #df3f3f;
+      --success: #237a4b;
+      --status-neutral: #737373;
+      --primary: #171717;
+      --primary-foreground: #fafafa;
+      --hover: color-mix(in srgb, var(--highlight) 14%, transparent);
+      --danger-soft: color-mix(in srgb, var(--danger) 8%, transparent);
+      --success-soft: color-mix(in srgb, var(--success) 9%, transparent);
+      --radius-card: 7px;
+      --radius-control: 6px;
+      font-family: var(--font-body);
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #171717;
+      --foreground: #fafafa;
+      --card: #262626;
+      --sidebar: #262626;
+      --secondary: #404040;
+      --muted-foreground: #a3a3a3;
+      --border: rgba(255, 255, 255, .10);
+      --border-strong: #737373;
+      --ring: #737373;
+      --success: #63d297;
+      --status-neutral: #a3a3a3;
+      --primary: #fafafa;
+      --primary-foreground: #262626;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --background: #171717;
+        --foreground: #fafafa;
+        --card: #262626;
+        --sidebar: #262626;
+        --secondary: #404040;
+        --muted-foreground: #a3a3a3;
+        --border: rgba(255, 255, 255, .10);
+        --border-strong: #737373;
+        --ring: #737373;
+        --success: #63d297;
+        --status-neutral: #a3a3a3;
+        --primary: #fafafa;
+        --primary-foreground: #262626;
+      }
+
     }
 
     * { box-sizing: border-box; }
 
+    html { min-width: 320px; }
+
     body {
       margin: 0;
       min-height: 100vh;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 8% 0%, rgba(61, 139, 253, .13), transparent 34rem),
-        radial-gradient(circle at 96% 12%, rgba(53, 208, 127, .07), transparent 30rem),
-        var(--bg);
+      color: var(--foreground);
+      background: var(--background);
+      font-size: 14px;
+      line-height: 1.5;
     }
 
-    button, select { font: inherit; }
+    button,
+    input,
+    select,
+    textarea { font: inherit; }
+
+    button { color: inherit; }
+
+    [hidden] { display: none !important; }
+
+    ::selection {
+      color: var(--foreground);
+      background: color-mix(in srgb, var(--ring) 45%, transparent);
+    }
 
     .shell {
-      width: min(1280px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 42px 0 64px;
+      width: min(1440px, calc(100% - 32px));
+      margin: 16px auto 32px;
     }
 
-    .masthead {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 28px;
-      margin-bottom: 30px;
+    .app-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "title logo";
+      column-gap: 24px;
+      row-gap: 8px;
+      align-items: start;
+      margin-bottom: 16px;
     }
 
-    .eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      margin-bottom: 12px;
-      color: #a8b5c8;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-    }
+    .header-title { grid-area: title; }
 
     .live-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(53, 208, 127, .10);
+      background: var(--success);
     }
 
-    .live-dot.error {
-      background: var(--red);
-      box-shadow: 0 0 0 5px rgba(255, 94, 104, .10);
-    }
+    .live-dot.paused { background: var(--highlight); }
+    .live-dot.error { background: var(--danger); }
+
+    h1,
+    h2,
+    h3 { font-family: var(--font-heading); }
 
     h1 {
-      max-width: 760px;
       margin: 0;
-      font-size: clamp(34px, 5vw, 62px);
-      font-weight: 760;
-      letter-spacing: -.055em;
-      line-height: .98;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 1.15;
     }
 
-    .intro {
-      max-width: 650px;
-      margin: 18px 0 0;
-      color: var(--muted);
-      font-size: 16px;
+    .section-intro {
+      max-width: 70ch;
+      margin: 8px 0 0;
+      color: var(--muted-foreground);
       line-height: 1.6;
     }
 
-    .actions {
+    .heisel-logo {
+      grid-area: logo;
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       justify-content: flex-end;
-      gap: 10px;
+      min-height: 40px;
     }
 
-    .button, .select-wrap {
-      min-height: 42px;
-      border: 1px solid var(--line);
-      border-radius: 11px;
-      color: #dce5f2;
-      background: rgba(16, 23, 34, .86);
+    .heisel-logo-image {
+      display: block;
+      width: auto;
+      max-width: 190px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    .heisel-logo-on-dark { display: none; }
+    :root[data-theme="dark"] .heisel-logo-on-light { display: none; }
+    :root[data-theme="dark"] .heisel-logo-on-dark { display: block; }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .heisel-logo-on-light { display: none; }
+      :root:not([data-theme="light"]) .heisel-logo-on-dark { display: block; }
+    }
+
+    .ui-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
+    }
+
+    .button,
+    .select-wrap,
+    .text-input,
+    .select-input,
+    .textarea-input {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      color: var(--foreground);
+      background: var(--card);
     }
 
     .button {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      padding: 0 14px;
+      min-height: 32px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
-      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+      transition: background-color .18s ease, border-color .18s ease;
     }
 
     .button:hover:not(:disabled) {
-      border-color: #42526b;
-      background: var(--surface-raised);
-      transform: translateY(-1px);
+      border-color: transparent;
+      background: var(--hover);
     }
 
-    .button:focus-visible, select:focus-visible, .check-box:focus-visible {
-      outline: 2px solid var(--blue);
-      outline-offset: 3px;
+    .button:active:not(:disabled) {
+      background: color-mix(in srgb, var(--highlight) 18%, transparent);
     }
 
     .button.primary {
-      border-color: rgba(61, 139, 253, .45);
-      color: #dceaff;
-      background: rgba(61, 139, 253, .13);
+      border-color: var(--primary);
+      color: var(--primary-foreground);
+      background: var(--primary);
     }
 
-    .button.active {
-      border-color: rgba(53, 208, 127, .42);
-      color: #c8f8dc;
-      background: rgba(53, 208, 127, .11);
+    .button.primary:hover:not(:disabled),
+    .button.primary:active:not(:disabled) { color: var(--foreground); }
+
+    .button.secondary { background: var(--secondary); }
+
+    .button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
     }
 
-    .button:disabled { opacity: .55; cursor: not-allowed; }
+    .button.is-loading .ui-icon,
+    .spinner { animation: spin .8s linear infinite; }
+
+    .button:focus-visible,
+    .page-tab:focus-visible,
+    .long-term-server-header:focus-visible,
+    .select-wrap select:focus-visible,
+    .text-input:focus-visible,
+    .select-input:focus-visible,
+    .textarea-input:focus-visible,
+    .placeholder-button:focus-visible,
+    input[type="checkbox"]:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--ring) 60%, transparent);
+      outline-offset: 2px;
+    }
+
+    .page-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 16px;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--sidebar);
+      scrollbar-width: thin;
+    }
+
+    .page-tab-list {
+      display: flex;
+      gap: 4px;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+
+    .nav-connection {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      padding: 0 8px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .page-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 10px;
+      border: .5px solid transparent;
+      border-radius: var(--radius-card);
+      color: var(--foreground);
+      background: transparent;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .page-tab:hover { background: var(--hover); }
+
+    .page-tab.is-active {
+      border-color: var(--border-strong);
+      background: var(--secondary);
+    }
+
+    .page-view { min-width: 0; }
+
+    .dashboard-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--sidebar);
+    }
 
     .select-wrap {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 0 10px 0 13px;
-      color: var(--muted);
+      min-height: 32px;
+      padding: 0 8px 0 10px;
+      color: var(--muted-foreground);
       font-size: 13px;
+      font-weight: 500;
     }
 
-    .notification-diagnostic {
-      width: 100%;
-      max-width: 520px;
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.45;
-      text-align: right;
-    }
-
-    .notification-diagnostic.success { color: #8ceab6; }
-    .notification-diagnostic.error { color: #ff9ba2; }
-    .notification-diagnostic.warning { color: #ffd18a; }
-
-    select {
+    .select-wrap select {
+      min-width: 0;
+      max-width: 100%;
       border: 0;
       outline: 0;
-      color: var(--text);
+      color: var(--foreground);
       background: transparent;
       cursor: pointer;
     }
@@ -180,167 +349,221 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       overflow: hidden;
-      margin-bottom: 18px;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius);
-      background: rgba(16, 23, 34, .76);
-      backdrop-filter: blur(12px);
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--card);
     }
 
     .metric {
-      min-height: 100px;
-      padding: 22px 24px;
-      border-right: 1px solid var(--line-soft);
+      position: relative;
+      isolation: isolate;
+      min-height: 84px;
+      overflow: hidden;
+      padding: 16px;
+      border-right: 1px solid var(--border);
     }
+
+    .metric > :not(.metric-graphic) {
+      position: relative;
+      z-index: 1;
+    }
+
+    .metric-graphic {
+      position: absolute;
+      z-index: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 48px;
+      opacity: .42;
+      pointer-events: none;
+    }
+
+    .metric-graphic svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .metric-line-grid {
+      fill: none;
+      stroke: var(--border-strong);
+      stroke-width: 1;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .metric-line {
+      fill: none;
+      stroke: var(--highlight);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .metric-line-point { fill: var(--highlight); }
+    .metric-graphic.is-availability .metric-line { stroke: var(--success); }
+    .metric-graphic.is-availability .metric-line-point { fill: var(--success); }
 
     .metric:last-child { border-right: 0; }
 
-    .metric-label {
-      margin-bottom: 9px;
-      color: var(--muted);
+    .metric-label,
+    .field-label,
+    .timeline-title {
+      color: var(--muted-foreground);
       font-size: 12px;
-      font-weight: 650;
+      font-weight: 600;
       letter-spacing: .08em;
       text-transform: uppercase;
     }
 
+    .metric-label { margin-bottom: 4px; }
+
     .metric-value {
-      font-size: 22px;
-      font-weight: 670;
-      letter-spacing: -.025em;
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 600;
     }
+
+    .metric-value.is-paused { color: var(--danger); }
 
     .legend {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 18px;
-      margin: 0 3px 18px;
-      color: var(--muted);
+      gap: 16px;
+      margin: 0 0 16px;
+      color: var(--muted-foreground);
       font-size: 12px;
     }
 
-    .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     .legend-swatch {
       width: 10px;
       height: 10px;
+      border: 1px solid var(--border-strong);
       border-radius: 3px;
-      background: var(--grey);
+      background: var(--status-neutral);
     }
 
-    .legend-swatch.available { background: var(--green); }
-    .legend-swatch.unavailable { background: var(--red); }
-    .legend-swatch.recommended {
-      border: 2px solid var(--amber);
-      background: transparent;
+    .legend-swatch.available { border-color: var(--success); background: var(--success); }
+    .legend-swatch.unavailable { border-color: var(--danger); background: var(--danger); }
+    .legend-swatch.recommended { border: 2px solid var(--highlight); background: transparent; }
+
+    .targets {
+      display: grid;
+      gap: 16px;
     }
 
-    .targets { display: grid; gap: 14px; }
-
-    .target-card {
+    .target-card,
+    .settings-panel {
       overflow: hidden;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius);
-      background: linear-gradient(145deg, rgba(21, 30, 43, .94), rgba(13, 19, 29, .94));
-      box-shadow: 0 18px 50px rgba(0, 0, 0, .15);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--card);
     }
 
     .target-header {
       display: grid;
       grid-template-columns: minmax(220px, .65fr) minmax(320px, 1fr);
-      gap: 24px;
-      padding: 24px 24px 21px;
-      border-bottom: 1px solid var(--line-soft);
+      gap: 16px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
     }
 
     .target-identity {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
     .status-orb {
-      width: 38px;
-      height: 38px;
-      flex: 0 0 38px;
-      border: 1px solid #637086;
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      border: 6px solid var(--secondary);
       border-radius: 50%;
-      background: radial-gradient(circle, #708097 0 27%, #252f3e 29% 100%);
-      box-shadow: 0 0 24px rgba(112, 128, 151, .12);
+      background: var(--status-neutral);
     }
 
-    .status-orb.available {
-      border-color: rgba(53, 208, 127, .68);
-      background: radial-gradient(circle, #70eca8 0 27%, #154f35 29% 100%);
-      box-shadow: 0 0 28px rgba(53, 208, 127, .20);
-    }
-
-    .status-orb.unavailable {
-      border-color: rgba(255, 94, 104, .62);
-      background: radial-gradient(circle, #ff8991 0 27%, #57242b 29% 100%);
-      box-shadow: 0 0 28px rgba(255, 94, 104, .14);
-    }
+    .status-orb.available { border-color: var(--success-soft); background: var(--success); }
+    .status-orb.unavailable { border-color: var(--danger-soft); background: var(--danger); }
 
     .target-name {
       margin: 0 0 4px;
-      font-size: 23px;
-      font-weight: 720;
-      letter-spacing: -.025em;
+      font-size: 18px;
+      font-weight: 600;
       text-transform: uppercase;
     }
 
-    .target-meta { color: var(--muted); font-size: 13px; }
+    .target-meta,
+    .state-time,
+    .timeline-summary,
+    .timeline-axis,
+    .check-inspector,
+    .helper-text {
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
 
     .target-state {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 8px;
       text-align: right;
     }
 
-    .state-label { font-weight: 650; }
-    .state-time { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .state-label { font-weight: 600; }
+    .state-time { margin-top: 4px; font-family: var(--font-code); }
 
-    .recommendation {
-      padding: 5px 8px;
-      border: 1px solid rgba(255, 189, 89, .34);
-      border-radius: 999px;
-      color: #ffd996;
-      background: rgba(255, 189, 89, .08);
-      font-size: 10px;
-      font-weight: 760;
-      letter-spacing: .08em;
-      text-transform: uppercase;
+    .recommendation,
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--secondary);
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .timeline-section { padding: 20px 24px 22px; }
+    .recommendation {
+      border-color: color-mix(in srgb, var(--highlight) 55%, var(--border));
+      background: color-mix(in srgb, var(--highlight) 12%, transparent);
+    }
 
-    .timeline-topline, .timeline-axis {
+    .status-badge.available { color: var(--success); background: var(--success-soft); }
+    .status-badge.unavailable { color: var(--danger); background: var(--danger-soft); }
+
+    .timeline-section { padding: 16px; }
+
+    .timeline-topline,
+    .timeline-axis {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
     }
 
-    .timeline-topline { margin-bottom: 12px; }
-
-    .timeline-title {
-      color: #dce4ef;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    .timeline-summary { color: var(--muted); font-size: 12px; }
+    .timeline-topline { margin-bottom: 8px; }
+    .timeline-title { color: var(--foreground); }
+    .timeline-summary { text-align: right; }
 
     .timeline-viewport {
       overflow-x: auto;
-      padding: 3px 1px 9px;
+      padding: 4px 3px 8px;
       scrollbar-width: thin;
-      scrollbar-color: #36445a transparent;
+      scrollbar-color: var(--border-strong) transparent;
     }
 
     .box-strip {
@@ -352,104 +575,694 @@
     .check-box {
       position: relative;
       width: 12px;
-      height: 39px;
+      height: 36px;
       flex: 0 0 12px;
       padding: 0;
-      border: 1px solid rgba(255, 255, 255, .06);
+      border: 1px solid var(--border);
       border-radius: 4px;
-      background: var(--grey);
-      cursor: crosshair;
-      transition: transform .12s ease, filter .12s ease;
+      background: var(--status-neutral);
+      cursor: pointer;
+      transition: filter .18s ease;
     }
 
-    .check-box:hover, .check-box:focus-visible {
-      z-index: 2;
-      filter: brightness(1.2);
-      transform: scaleY(1.13);
-    }
+    .check-box:hover { filter: brightness(1.15); }
+    .check-box.available { border-color: var(--success); background: var(--success); }
+    .check-box.unavailable { border-color: var(--danger); background: var(--danger); }
+    .check-box.recommended { border: 2px solid var(--highlight); }
+    .timeline-axis { font-family: var(--font-code); }
+    .check-inspector { min-height: 20px; margin-top: 8px; overflow-wrap: anywhere; }
 
-    .check-box.available { background: var(--green); }
-    .check-box.unavailable { background: var(--red); }
-    .check-box.error { background: var(--grey); }
-
-    .check-box.recommended::after {
-      position: absolute;
-      right: 2px;
-      bottom: 2px;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: var(--amber);
-      box-shadow: 0 0 0 1px rgba(9, 13, 20, .75);
-      content: "";
-    }
-
-    .timeline-axis {
-      margin-top: 1px;
-      color: #718097;
-      font-size: 11px;
-    }
-
-    .check-inspector {
-      min-height: 18px;
-      margin-top: 11px;
-      color: #a9b6c8;
-      font-size: 12px;
-    }
-
-    .empty, .global-error {
-      padding: 44px 24px;
-      border: 1px dashed var(--line);
-      border-radius: var(--radius);
-      color: var(--muted);
+    .empty,
+    .global-error {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      padding: 32px 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      color: var(--muted-foreground);
       text-align: center;
-      background: rgba(16, 23, 34, .45);
+      background: var(--card);
     }
 
-    .global-error { border-color: rgba(255, 94, 104, .35); color: #ffabb0; }
+    .global-error {
+      border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
 
-    .notification-note {
-      margin: 20px 3px 0;
-      color: #6f7d91;
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--foreground);
+      border-radius: 50%;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .settings-heading {
+      margin-bottom: 16px;
+    }
+
+    .settings-heading .section-intro { max-width: none; }
+
+    .settings-heading h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .settings-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .panel-header p {
+      max-width: 75ch;
+      margin: 4px 0 0;
+      color: var(--muted-foreground);
+      font-size: 13px;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: 16px;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .form-field.full { grid-column: 1 / -1; }
+    .field-label { color: var(--foreground); letter-spacing: 0; text-transform: none; }
+
+    .text-input,
+    .select-input {
+      width: 100%;
+      min-height: 32px;
+      padding: 0 9px;
+    }
+
+    .textarea-input {
+      width: 100%;
+      min-height: 96px;
+      padding: 8px 9px;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    .text-input:hover,
+    .select-input:hover,
+    .textarea-input:hover { border-color: var(--border-strong); }
+
+    .toggle-row,
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      margin: 2px 0 0;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .toggle-copy strong,
+    .checkbox-copy strong { display: block; font-weight: 500; }
+    .toggle-copy span,
+    .checkbox-copy span { display: block; color: var(--muted-foreground); font-size: 12px; }
+
+    .catalog-toolbar,
+    .form-actions,
+    .placeholder-list {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .catalog-toolbar { justify-content: space-between; }
+    .catalog-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .catalog-status,
+    .form-status {
+      min-height: 20px;
+      color: var(--muted-foreground);
+      font-size: 13px;
+    }
+
+    .catalog-status.error,
+    .form-status.error { color: var(--danger); }
+    .form-status.success { color: var(--success); }
+
+    .server-catalog {
+      display: grid;
+      gap: 24px;
+    }
+
+    .server-category {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .server-category-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .server-category-heading h3,
+    .server-category-heading h4 {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .server-category-count {
+      color: var(--muted-foreground);
       font-size: 12px;
-      line-height: 1.55;
+      white-space: nowrap;
     }
 
-    @media (max-width: 820px) {
-      .shell { width: min(100% - 22px, 1280px); padding-top: 26px; }
-      .masthead { flex-direction: column; }
-      .actions { justify-content: flex-start; }
-      .notification-diagnostic { text-align: left; }
+    .server-category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .server-type-group {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--secondary);
+    }
+
+    .server-type-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .server-type-heading h5 {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .server-specs {
+      margin-top: 4px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+
+    .location-list {
+      display: grid;
+      gap: 4px;
+    }
+
+    .location-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 36px;
+      padding: 6px 8px;
+      border-radius: var(--radius-control);
+      background: var(--card);
+      cursor: pointer;
+    }
+
+    .location-option:hover { background: var(--hover); }
+
+    .location-option-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .location-name { font-family: var(--font-code); font-size: 13px; }
+
+    .placeholder-button {
+      min-height: 28px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--foreground);
+      background: var(--secondary);
+      font-family: var(--font-code);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .placeholder-button:hover { background: var(--hover); }
+
+    .message-preview {
+      min-height: 44px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      color: var(--foreground);
+      background: var(--secondary);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .form-actions {
+      justify-content: flex-end;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--sidebar);
+    }
+
+    .form-status {
+      flex: 1 1 260px;
+      margin-right: auto;
+    }
+
+    .long-term-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    .long-term-heading h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .long-term-heading p {
+      margin: 4px 0 0;
+      color: var(--muted-foreground);
+      font-size: 13px;
+    }
+
+    .long-term-toolbar {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .long-term-range {
+      display: grid;
+      gap: 4px;
+    }
+
+    .long-term-range .select-input { min-width: 140px; }
+    .long-term-metrics { grid-template-columns: repeat(4, 1fr); }
+    .long-term-status { min-height: 20px; margin: -8px 0 16px; }
+
+    .long-term-catalog,
+    .long-term-category {
+      display: grid;
+      gap: 16px;
+    }
+
+    .long-term-catalog { gap: 24px; }
+
+    .long-term-category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      align-items: start;
+      gap: 16px;
+    }
+
+    .long-term-card {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: var(--card);
+    }
+
+    .long-term-server-header {
+      display: block;
+      padding: 14px 16px;
+      background: var(--secondary);
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .long-term-server-header::-webkit-details-marker { display: none; }
+    .long-term-card[open] > .long-term-server-header { border-bottom: 1px solid var(--border); }
+
+    .long-term-server-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .long-term-server-actions {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .long-term-price-range {
+      color: var(--foreground);
+      font-size: 12px;
+      font-weight: 500;
+      text-align: right;
+    }
+
+    .long-term-server-header h4 {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .long-term-chevron {
+      flex: 0 0 16px;
+      margin-top: 2px;
+      transition: transform .18s ease;
+    }
+
+    .long-term-card[open] .long-term-chevron { transform: rotate(180deg); }
+
+    .compact-location-list {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .long-term-card[open] .compact-location-list { display: none; }
+
+    .compact-location {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: baseline;
+      gap: 4px 8px;
+      min-width: 0;
+      padding: 8px 0;
+    }
+
+    .compact-location:first-child { padding-top: 0; }
+    .compact-location:last-child { padding-bottom: 0; }
+    .compact-location + .compact-location { border-top: 1px solid var(--border); }
+
+    .compact-location-name {
+      font-family: var(--font-code);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .compact-location-percent {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .compact-location-state,
+    .availability-price {
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+
+    .compact-location-state.available { color: var(--success); }
+    .compact-location-state.unavailable { color: var(--danger); }
+
+    .compact-availability-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      grid-column: 1 / -1;
+      height: 16px;
+      margin-top: 4px;
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    .compact-availability-bar {
+      min-width: 2px;
+      height: max(2px, var(--availability));
+      flex: 1 1 0;
+      border-radius: 1px 1px 0 0;
+      background: var(--success);
+    }
+
+    .compact-availability-bar.is-zero { background: var(--danger); }
+    .compact-availability-bar.is-empty { height: 2px; background: var(--status-neutral); }
+
+    .long-term-locations { display: grid; }
+
+    .long-term-location {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .long-term-location:last-child { border-bottom: 0; }
+
+    .availability-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .availability-location {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .availability-location-name {
+      font-family: var(--font-code);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .availability-value {
+      flex: 0 0 auto;
+      text-align: right;
+    }
+
+    .availability-percent {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .availability-assessment {
+      margin-top: 2px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+
+    .availability-price {
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .availability-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 56px;
+      padding-top: 4px;
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    .availability-bar {
+      min-width: 3px;
+      height: max(3px, var(--availability));
+      flex: 1 1 0;
+      border-radius: 2px 2px 0 0;
+      background: var(--success);
+    }
+
+    .availability-bar.is-zero { background: var(--danger); }
+    .availability-bar.is-empty { height: 3px; background: var(--status-neutral); }
+
+    .availability-meta,
+    .availability-axis {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+
+    .availability-axis {
+      margin-top: -8px;
+      font-family: var(--font-code);
+    }
+
+    @media (max-width: 980px) {
+      .heisel-logo-image { max-width: 160px; height: 36px; }
+      .long-term-metrics { grid-template-columns: repeat(2, 1fr); }
+      .long-term-metrics .metric:nth-child(2) { border-right: 0; }
+      .long-term-metrics .metric:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: calc(100% - 12px); margin-top: 8px; }
+      h1 { font-size: 28px; }
+      .app-header {
+        display: block;
+        position: relative;
+      }
+      .header-title { padding-right: 117px; }
+      .heisel-logo { position: absolute; top: 0; right: 0; }
+      .heisel-logo-image { max-width: 105px; height: 30px; }
+
+      .button,
+      .page-tab,
+      .select-wrap,
+      .text-input,
+      .select-input { min-height: 40px; }
+
+      .page-tab { gap: 4px; padding: 0 6px; }
+      .page-tab .ui-icon { display: none; }
+      .nav-connection { gap: 6px; padding: 0 4px; font-size: 11px; }
+
+      .dashboard-toolbar > * { flex: 1 1 100%; min-width: 0; }
+      .long-term-heading { align-items: stretch; flex-direction: column; gap: 12px; }
+      .long-term-toolbar { align-items: stretch; flex-direction: column; }
+      .long-term-range .select-input { min-width: 0; }
+      .long-term-toolbar > * { width: 100%; }
+      .select-wrap { justify-content: space-between; }
       .metrics { grid-template-columns: 1fr; }
-      .metric { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+      .metric { min-height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
       .metric:last-child { border-bottom: 0; }
-      .target-header { grid-template-columns: 1fr; gap: 17px; }
+      .long-term-metrics .metric:nth-child(2) { border-right: 0; }
+      .long-term-metrics .metric:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+      .long-term-category-grid { grid-template-columns: 1fr; }
+      .long-term-server-actions { gap: 8px; }
+      .target-header { grid-template-columns: 1fr; gap: 12px; }
       .target-state { justify-content: flex-start; text-align: left; }
-      .timeline-section, .target-header { padding-left: 18px; padding-right: 18px; }
+      .timeline-topline { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .timeline-summary { text-align: left; }
+      .check-box { width: 14px; flex-basis: 14px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-field.full { grid-column: auto; }
+      .panel-header { flex-direction: column; }
+      .catalog-toolbar { align-items: flex-start; flex-direction: column; }
+      .server-category-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .server-category-grid { grid-template-columns: 1fr; }
+      .form-actions > .button { flex: 1 1 100%; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+      .spinner,
+      .button.is-loading .ui-icon { animation: none; }
     }
   </style>
 </head>
 <body>
   <main class="shell">
-    <header class="masthead">
-      <div>
-        <div class="eyebrow">
-          <span class="live-dot" id="connectionDot"></span>
-          <span id="connectionLabel">Verbinde …</span>
-        </div>
-        <h1>Availability,<br>Minute für Minute.</h1>
-        <p class="intro">
-          Jede Box steht für eine Hetzner-Abfrage. Von links nach rechts siehst du,
-          wann ein Servertyp verfügbar, ausgebucht oder nicht prüfbar war.
-        </p>
+    <header class="app-header">
+      <div class="header-title">
+        <h1>HetznerWatch</h1>
       </div>
-      <div class="actions">
+      <div class="heisel-logo">
+        <img class="heisel-logo-image heisel-logo-on-light" src="/static/heisel-analytics-logo-light.png" alt="Heisel Analytics">
+        <img class="heisel-logo-image heisel-logo-on-dark" src="/static/heisel-analytics-logo-dark.png" alt="Heisel Analytics">
+      </div>
+    </header>
+
+    <nav class="page-tabs" aria-label="Hauptnavigation">
+      <div class="page-tab-list" role="tablist">
+        <button class="page-tab is-active" id="dashboardTab" type="button" role="tab" data-page-target="dashboard" aria-controls="dashboardPage" aria-selected="true" tabindex="0">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+            <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+            <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+            <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="page-tab" id="longTermTab" type="button" role="tab" data-page-target="long-term" aria-controls="longTermPage" aria-selected="false" tabindex="-1">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M3 3v18h18"></path>
+            <path d="M8 17v-3"></path>
+            <path d="M13 17V9"></path>
+            <path d="M18 17V5"></path>
+          </svg>
+          <span>Langzeit</span>
+        </button>
+        <button class="page-tab" id="settingsTab" type="button" role="tab" data-page-target="settings" aria-controls="settingsPage" aria-selected="false" tabindex="-1">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.2a2 2 0 0 1-2 0l-.1-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.1.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.1.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.1-.1a2 2 0 0 1 2 0l.4.2a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.2a2 2 0 0 1 2 0l.1.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.1-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.1-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.1.1a2 2 0 0 1-2 0l-.4-.2a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <span>Einstellungen</span>
+        </button>
+      </div>
+      <div class="nav-connection" role="status" aria-live="polite">
+        <span class="live-dot" id="connectionDot"></span>
+        <span id="connectionLabel">Verbinde …</span>
+      </div>
+    </nav>
+
+    <section class="page-view is-active" id="dashboardPage" role="tabpanel" aria-labelledby="dashboardTab" data-page="dashboard">
+      <div class="dashboard-toolbar" aria-label="Dashboard-Werkzeuge">
         <label class="select-wrap">
-          Verlauf
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M3 3v5h5"></path>
+            <path d="M3.1 13a9 9 0 1 0 2.1-5.9L3 8"></path>
+          </svg>
+          <span>Verlauf</span>
           <select id="historyLimit" aria-label="Anzahl sichtbarer Abfragen">
             <option value="60">60 Abfragen</option>
             <option value="120" selected>120 Abfragen</option>
@@ -457,53 +1270,251 @@
             <option value="500">500 Abfragen</option>
           </select>
         </label>
-        <button class="button primary" id="notificationButton" type="button">
-          <span aria-hidden="true">◉</span>
-          <span>Benachrichtigungen aktivieren</span>
-        </button>
-        <button class="button" id="notificationTestButton" type="button">
-          <span aria-hidden="true">✦</span>
-          <span>Test senden</span>
+        <button class="button" id="monitoringToggle" type="button" aria-pressed="true">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 2v10"></path>
+            <path d="M18.4 6.6a9 9 0 1 1-12.8 0"></path>
+          </svg>
+          <span>Abfragen pausieren</span>
         </button>
         <button class="button" id="refreshButton" type="button">
-          <span aria-hidden="true">↻</span>
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path>
+            <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path>
+          </svg>
           <span>Aktualisieren</span>
         </button>
-        <div class="notification-diagnostic" id="notificationDiagnostic" role="status"></div>
+        <button class="button" id="themeButton" type="button" aria-pressed="false">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"></path>
+          </svg>
+          <span>Dunkelmodus</span>
+        </button>
       </div>
-    </header>
 
-    <section class="metrics" aria-label="Zusammenfassung">
-      <div class="metric">
-        <div class="metric-label">Überwachte Ziele</div>
-        <div class="metric-value" id="targetCount">3</div>
+      <section class="metrics" aria-label="Zusammenfassung">
+        <div class="metric">
+          <div class="metric-label">Überwachte Ziele</div>
+          <div class="metric-value" id="targetCount">–</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Abfrageintervall</div>
+          <div class="metric-value" id="pollInterval">–</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Letzte Abfrage</div>
+          <div class="metric-value" id="lastChecked">Noch keine Daten</div>
+        </div>
+      </section>
+
+      <div class="legend" aria-label="Legende">
+        <span class="legend-item"><span class="legend-swatch available"></span>Verfügbar</span>
+        <span class="legend-item"><span class="legend-swatch unavailable"></span>Nicht verfügbar</span>
+        <span class="legend-item"><span class="legend-swatch"></span>Fehler</span>
+        <span class="legend-item"><span class="legend-swatch recommended"></span>Empfohlen</span>
       </div>
-      <div class="metric">
-        <div class="metric-label">Abfrageintervall</div>
-        <div class="metric-value" id="pollInterval">60 Sekunden</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Letzte Abfrage</div>
-        <div class="metric-value" id="lastChecked">Noch keine Daten</div>
-      </div>
+
+      <section class="targets" id="targetList" aria-live="polite" aria-busy="true">
+        <div class="empty">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Verlauf wird geladen …</span>
+        </div>
+      </section>
+
     </section>
 
-    <div class="legend" aria-label="Legende">
-      <span class="legend-item"><span class="legend-swatch available"></span>Verfügbar</span>
-      <span class="legend-item"><span class="legend-swatch unavailable"></span>Nicht verfügbar</span>
-      <span class="legend-item"><span class="legend-swatch"></span>Fehler</span>
-      <span class="legend-item"><span class="legend-swatch recommended"></span>Empfohlen</span>
-    </div>
+    <section class="page-view" id="longTermPage" role="tabpanel" aria-labelledby="longTermTab" data-page="long-term" hidden>
+      <div class="long-term-heading">
+        <div>
+          <h2>Langzeitüberwachung</h2>
+          <p>Historische Verfügbarkeit aller Servertypen und Standorte aus den erfolgreichen Gesamtabfragen. Die Werte helfen bei der Einschätzung, sind aber keine Verfügbarkeitsprognose.</p>
+        </div>
+        <div class="long-term-toolbar" aria-label="Langzeit-Werkzeuge">
+          <label class="long-term-range">
+            <span class="field-label">Zeitraum</span>
+            <select class="select-input" id="longTermRange">
+              <option value="24h">24 Stunden</option>
+              <option value="7d" selected>7 Tage</option>
+              <option value="30d">30 Tage</option>
+              <option value="90d">90 Tage</option>
+            </select>
+          </label>
+          <button class="button" id="refreshLongTerm" type="button">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path>
+              <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path>
+            </svg>
+            <span>Aktualisieren</span>
+          </button>
+        </div>
+      </div>
 
-    <section class="targets" id="targetList" aria-live="polite">
-      <div class="empty">Verlauf wird geladen …</div>
+      <section class="metrics long-term-metrics" aria-label="Langzeit-Zusammenfassung">
+        <div class="metric">
+          <div class="metric-label">Server &amp; Standorte</div>
+          <div class="metric-value" id="longTermTargetCount">–</div>
+          <div class="metric-graphic" id="longTermTargetGraphic" aria-hidden="true"></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Datenabdeckung</div>
+          <div class="metric-value" id="longTermDataCount">–</div>
+          <div class="metric-graphic" id="longTermDataGraphic" aria-hidden="true"></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Historisch verfügbar</div>
+          <div class="metric-value" id="longTermAvailability">–</div>
+          <div class="metric-graphic is-availability" id="longTermAvailabilityGraphic" aria-hidden="true"></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Aktuell verfügbar</div>
+          <div class="metric-value" id="longTermCurrentCount">–</div>
+          <div class="metric-graphic is-availability" id="longTermCurrentGraphic" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <div class="long-term-status helper-text" id="longTermStatus" role="status" aria-live="polite"></div>
+      <section class="long-term-catalog" id="longTermCatalog" aria-live="polite" aria-busy="true">
+        <div class="empty">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Langzeitdaten werden geladen …</span>
+        </div>
+      </section>
     </section>
 
-    <p class="notification-note">
-      Browser-Benachrichtigungen erscheinen beim Wechsel eines Ziels auf
-      „verfügbar“. Dafür muss diese Seite in einem Browser-Tab geöffnet bleiben;
-      der API-Token wird niemals an den Browser übertragen.
-    </p>
+    <section class="page-view" id="settingsPage" role="tabpanel" aria-labelledby="settingsTab" data-page="settings" hidden>
+      <div class="settings-heading">
+        <h2>Einstellungen</h2>
+        <p class="section-intro">
+          Lege fest, welche Servertypen überwacht werden, wie häufig HetznerWatch
+          prüft und wohin Verfügbarkeitsmeldungen gesendet werden.
+        </p>
+      </div>
+
+      <form class="settings-form" id="settingsForm">
+        <section class="settings-panel" aria-labelledby="monitoringTitle">
+          <div class="panel-header">
+            <div>
+              <h3 id="monitoringTitle">Überwachung</h3>
+              <p>Intervall und alle Kombinationen aus Hetzner-Servertyp und Standort.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <label class="form-field">
+                <span class="field-label">Abfrageintervall in Sekunden</span>
+                <input class="text-input" id="pollIntervalInput" name="poll_interval_seconds" type="number" min="10" max="86400" step="1" inputmode="numeric" required aria-describedby="pollIntervalHelp">
+                <span class="helper-text" id="pollIntervalHelp">Zulässig sind 10 bis 86400 Sekunden.</span>
+              </label>
+            </div>
+
+            <div class="catalog-toolbar">
+              <div>
+                <strong id="selectedTargetCount">0 Ziele ausgewählt</strong>
+                <div class="catalog-status" id="catalogStatus" role="status"></div>
+              </div>
+              <div class="catalog-toolbar-actions">
+                <button class="button" id="selectAllTargets" type="button">Alle auswählen</button>
+                <button class="button" id="clearAllTargets" type="button">Auswahl leeren</button>
+                <button class="button" id="reloadCatalog" type="button">
+                  <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path>
+                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path>
+                  </svg>
+                  <span>Katalog neu laden</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="server-catalog" id="serverCatalog" aria-live="polite" aria-busy="true">
+              <div class="empty">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Hetzner-Serverkatalog wird geladen …</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-panel" aria-labelledby="ntfyTitle">
+          <div class="panel-header">
+            <div>
+              <h3 id="ntfyTitle">ntfy-Benachrichtigungen</h3>
+              <p>Eine Nachricht wird gesendet, wenn ein zuvor nicht verfügbares Ziel wieder verfügbar ist.</p>
+            </div>
+            <label class="toggle-row">
+              <input id="ntfyEnabled" type="checkbox">
+              <span class="toggle-copy">
+                <strong>ntfy aktiv</strong>
+                <span>Automatische Meldungen senden</span>
+              </span>
+            </label>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <label class="form-field">
+                <span class="field-label">Domain</span>
+                <input class="text-input" id="ntfyDomain" type="url" placeholder="https://ntfy.example.com" autocomplete="url">
+                <span class="helper-text">Root-URL des ntfy-Servers, bevorzugt über HTTPS.</span>
+              </label>
+              <label class="form-field">
+                <span class="field-label">Topic</span>
+                <input class="text-input" id="ntfyTopic" type="text" placeholder="hetznerwatch" autocomplete="off">
+                <span class="helper-text">Buchstaben, Zahlen, Unterstrich und Bindestrich.</span>
+              </label>
+              <label class="form-field">
+                <span class="field-label">Authentifizierung</span>
+                <select class="select-input" id="ntfyAuthMode">
+                  <option value="none">Keine</option>
+                  <option value="basic">Benutzername und Passwort</option>
+                  <option value="token">Zugriffstoken</option>
+                </select>
+              </label>
+              <div class="form-field" aria-hidden="true"></div>
+              <label class="form-field" id="ntfyUsernameField" hidden>
+                <span class="field-label">Benutzername</span>
+                <input class="text-input" id="ntfyUsername" type="text" autocomplete="username">
+              </label>
+              <label class="form-field" id="ntfyPasswordField" hidden>
+                <span class="field-label">Passwort</span>
+                <input class="text-input" id="ntfyPassword" type="password" autocomplete="current-password">
+                <span class="helper-text" id="ntfyPasswordHelp">Leer lassen, um ein gespeichertes Passwort beizubehalten.</span>
+              </label>
+              <label class="form-field" id="ntfyTokenField" hidden>
+                <span class="field-label">Zugriffstoken</span>
+                <input class="text-input" id="ntfyToken" type="password" autocomplete="off">
+                <span class="helper-text" id="ntfyTokenHelp">Leer lassen, um ein gespeichertes Token beizubehalten.</span>
+              </label>
+              <div class="form-field full">
+                <label class="field-label" for="ntfyMessage">Nachricht</label>
+                <textarea class="textarea-input" id="ntfyMessage" maxlength="1000" aria-describedby="placeholderHelp"></textarea>
+                <span class="helper-text" id="placeholderHelp">Platzhalter an der Cursorposition einfügen:</span>
+                <div class="placeholder-list" id="placeholderList"></div>
+              </div>
+              <div class="form-field full">
+                <span class="field-label">Vorschau</span>
+                <div class="message-preview" id="messagePreview"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <div class="form-status" id="settingsStatus" role="status" aria-live="polite"></div>
+          <button class="button secondary" id="testNtfyButton" type="button">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9Z"></path>
+            </svg>
+            <span>Testnachricht senden</span>
+          </button>
+          <button class="button primary" id="saveSettingsButton" type="submit">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
+              <path d="M17 21v-8H7v8M7 3v5h8"></path>
+            </svg>
+            <span>Einstellungen speichern</span>
+          </button>
+        </div>
+      </form>
+    </section>
   </main>
 
   <script>
@@ -513,14 +1524,53 @@
       connectionDot: document.querySelector("#connectionDot"),
       connectionLabel: document.querySelector("#connectionLabel"),
       historyLimit: document.querySelector("#historyLimit"),
-      notificationButton: document.querySelector("#notificationButton"),
-      notificationTestButton: document.querySelector("#notificationTestButton"),
-      notificationDiagnostic: document.querySelector("#notificationDiagnostic"),
+      monitoringToggle: document.querySelector("#monitoringToggle"),
       refreshButton: document.querySelector("#refreshButton"),
+      themeButton: document.querySelector("#themeButton"),
       targetCount: document.querySelector("#targetCount"),
       pollInterval: document.querySelector("#pollInterval"),
       lastChecked: document.querySelector("#lastChecked"),
       targetList: document.querySelector("#targetList"),
+      longTermRange: document.querySelector("#longTermRange"),
+      refreshLongTerm: document.querySelector("#refreshLongTerm"),
+      longTermTargetCount: document.querySelector("#longTermTargetCount"),
+      longTermDataCount: document.querySelector("#longTermDataCount"),
+      longTermAvailability: document.querySelector("#longTermAvailability"),
+      longTermCurrentCount: document.querySelector("#longTermCurrentCount"),
+      longTermTargetGraphic: document.querySelector("#longTermTargetGraphic"),
+      longTermDataGraphic: document.querySelector("#longTermDataGraphic"),
+      longTermAvailabilityGraphic: document.querySelector("#longTermAvailabilityGraphic"),
+      longTermCurrentGraphic: document.querySelector("#longTermCurrentGraphic"),
+      longTermStatus: document.querySelector("#longTermStatus"),
+      longTermCatalog: document.querySelector("#longTermCatalog"),
+      pageTabs: Array.from(document.querySelectorAll("[data-page-target]")),
+      pageViews: Array.from(document.querySelectorAll("[data-page]")),
+      settingsForm: document.querySelector("#settingsForm"),
+      pollIntervalInput: document.querySelector("#pollIntervalInput"),
+      selectedTargetCount: document.querySelector("#selectedTargetCount"),
+      catalogStatus: document.querySelector("#catalogStatus"),
+      serverCatalog: document.querySelector("#serverCatalog"),
+      selectAllTargets: document.querySelector("#selectAllTargets"),
+      clearAllTargets: document.querySelector("#clearAllTargets"),
+      reloadCatalog: document.querySelector("#reloadCatalog"),
+      ntfyEnabled: document.querySelector("#ntfyEnabled"),
+      ntfyDomain: document.querySelector("#ntfyDomain"),
+      ntfyTopic: document.querySelector("#ntfyTopic"),
+      ntfyAuthMode: document.querySelector("#ntfyAuthMode"),
+      ntfyUsername: document.querySelector("#ntfyUsername"),
+      ntfyPassword: document.querySelector("#ntfyPassword"),
+      ntfyToken: document.querySelector("#ntfyToken"),
+      ntfyUsernameField: document.querySelector("#ntfyUsernameField"),
+      ntfyPasswordField: document.querySelector("#ntfyPasswordField"),
+      ntfyTokenField: document.querySelector("#ntfyTokenField"),
+      ntfyPasswordHelp: document.querySelector("#ntfyPasswordHelp"),
+      ntfyTokenHelp: document.querySelector("#ntfyTokenHelp"),
+      ntfyMessage: document.querySelector("#ntfyMessage"),
+      placeholderList: document.querySelector("#placeholderList"),
+      messagePreview: document.querySelector("#messagePreview"),
+      settingsStatus: document.querySelector("#settingsStatus"),
+      testNtfyButton: document.querySelector("#testNtfyButton"),
+      saveSettingsButton: document.querySelector("#saveSettingsButton"),
     };
 
     function readPreference(key) {
@@ -540,22 +1590,29 @@
     }
 
     const storedLimit = Number(readPreference("historyLimit"));
+    const storedLongTermRange = readPreference("longTermRange");
     const state = {
       limit: [60, 120, 240, 500].includes(storedLimit) ? storedLimit : 120,
-      initialized: false,
-      maxIds: new Map(),
-      lastAvailability: new Map(),
       refreshTimer: null,
       requestInFlight: false,
+      monitoringEnabled: true,
+      monitoringRequestInFlight: false,
       pollIntervalSeconds: 60,
-      notificationWorker: null,
+      timelineScrollFrame: null,
+      settingsLoaded: false,
+      settingsRequestInFlight: false,
+      longTermRange: ["24h", "7d", "30d", "90d"].includes(storedLongTermRange)
+        ? storedLongTermRange
+        : "7d",
+      longTermLoadedRange: null,
+      longTermRequestInFlight: false,
+      passwordSet: false,
+      tokenSet: false,
+      placeholders: ["checked_at", "location", "recommended", "server_type", "status"],
     };
 
     elements.historyLimit.value = String(state.limit);
-
-    function targetKey(target) {
-      return `${target.server_type}:${target.location}`;
-    }
+    elements.longTermRange.value = state.longTermRange;
 
     function escapeHtml(value) {
       return String(value)
@@ -566,21 +1623,25 @@
         .replaceAll("'", "&#039;");
     }
 
-    function formatDate(value, includeSeconds = false) {
+    function formatDateTime(value) {
       if (!value) return "Noch keine Abfrage";
       const date = new Date(value);
-      return new Intl.DateTimeFormat("de-CH", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: includeSeconds ? "2-digit" : undefined,
-      }).format(date);
+      if (Number.isNaN(date.getTime())) return String(value);
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${hours}:${minutes} ${day}.${month}.${year}`;
     }
 
     function formatInterval(seconds) {
       if (seconds < 60) return `${seconds} Sekunden`;
       if (seconds === 60) return "1 Minute";
+      if (seconds % 3600 === 0) {
+        const hours = seconds / 3600;
+        return hours === 1 ? "1 Stunde" : `${hours} Stunden`;
+      }
       if (seconds % 60 === 0) return `${seconds / 60} Minuten`;
       return `${seconds} Sekunden`;
     }
@@ -594,7 +1655,7 @@
 
     function describeCheck(check) {
       const status = statusFor(check).label;
-      const time = formatDate(check.checked_at, true);
+      const time = formatDateTime(check.checked_at);
       const recommendation = check.recommended ? " · von Hetzner empfohlen" : "";
       const http = check.http_status_code ? ` · HTTP ${check.http_status_code}` : "";
       const error = check.error_message ? ` · ${check.error_message}` : "";
@@ -626,7 +1687,7 @@
             ${recommendation}
             <div>
               <div class="state-label">${status.label}</div>
-              <div class="state-time">${latest ? formatDate(latest.checked_at, true) : "Warte auf erste Abfrage"}</div>
+              <div class="state-time">${latest ? formatDateTime(latest.checked_at) : "Warte auf erste Abfrage"}</div>
             </div>
           </div>
         </div>
@@ -636,12 +1697,12 @@
             <div class="timeline-summary">${availableCount} von ${successful.length} erfolgreichen Abfragen verfügbar</div>
           </div>
           <div class="timeline-viewport">
-            <div class="box-strip" role="list" aria-label="Abfrageverlauf"></div>
+            <div class="box-strip" role="group" aria-label="Abfrageverlauf"></div>
           </div>
           <div class="timeline-axis">
-            <span>${checks.length ? formatDate(checks[0].checked_at) : "–"}</span>
+            <span>${checks.length ? formatDateTime(checks[0].checked_at) : "–"}</span>
             <span>${checks.length} Abfragen</span>
-            <span>${latest ? formatDate(latest.checked_at) : "–"}</span>
+            <span>${latest ? formatDateTime(latest.checked_at) : "–"}</span>
           </div>
           <div class="check-inspector">${latest ? escapeHtml(describeCheck(latest)) : "Noch keine Daten gespeichert."}</div>
         </div>
@@ -659,7 +1720,6 @@
         box.className = `check-box ${checkStatus.css}${check.recommended ? " recommended" : ""}`;
         box.title = description;
         box.setAttribute("aria-label", description);
-        box.setAttribute("role", "listitem");
         box.addEventListener("mouseenter", () => { inspector.textContent = description; });
         box.addEventListener("focus", () => { inspector.textContent = description; });
         box.addEventListener("mouseleave", () => { inspector.textContent = latestDescription; });
@@ -674,127 +1734,29 @@
       return card;
     }
 
-    function notificationEnabled() {
-      return readPreference("notificationsEnabled") === "true";
-    }
-
-    function setNotificationDiagnostic(message, type = "") {
-      elements.notificationDiagnostic.textContent = message;
-      elements.notificationDiagnostic.className = `notification-diagnostic${type ? ` ${type}` : ""}`;
-    }
-
-    function pageIsEmbedded() {
-      try {
-        return window.self !== window.top;
-      } catch (_error) {
-        return true;
+    function scrollTimelinesToLatest() {
+      if (state.timelineScrollFrame) {
+        cancelAnimationFrame(state.timelineScrollFrame);
       }
-    }
-
-    async function ensureNotificationWorker() {
-      if (!("serviceWorker" in navigator)) return null;
-      if (state.notificationWorker) return state.notificationWorker;
-
-      const registration = await navigator.serviceWorker.register(
-        "/service-worker.js",
-        { scope: "/" },
-      );
-      await navigator.serviceWorker.ready;
-      state.notificationWorker = registration;
-      return registration;
-    }
-
-    async function showBrowserNotification(title, options) {
-      const registration = await ensureNotificationWorker();
-      if (registration) {
-        await registration.showNotification(title, {
-          ...options,
-          data: { ...options.data, url: "/" },
-        });
-        const activeNotifications = await registration.getNotifications({
-          tag: options.tag,
-        });
-        return {
-          method: "Service Worker",
-          confirmed: activeNotifications.length > 0,
-          notification: null,
-        };
-      }
-
-      const notification = new Notification(title, options);
-      return {
-        method: "Notification API",
-        confirmed: true,
-        notification,
-      };
-    }
-
-    async function notifyAvailability(target, check) {
-      if (!("Notification" in window)) return;
-      if (Notification.permission !== "granted" || !notificationEnabled()) return;
-
-      try {
-        const delivery = await showBrowserNotification(
-          `${target.server_type.toUpperCase()} ist verfügbar`,
-          {
-            body: `Standort ${target.location}${check.recommended ? " · von Hetzner empfohlen" : ""}`,
-            tag: `hetzner-${targetKey(target)}`,
-            renotify: true,
-          },
-        );
-        if (delivery.notification) delivery.notification.onclick = () => {
-          window.focus();
-          delivery.notification.close();
-        };
-      } catch (error) {
-        setNotificationDiagnostic(
-          `Benachrichtigung fehlgeschlagen: ${error.name}: ${error.message}`,
-          "error",
-        );
-      }
-    }
-
-    function processNotifications(targets) {
-      for (const target of targets) {
-        const key = targetKey(target);
-        const checks = target.checks;
-        const latestId = checks.reduce((maximum, check) => Math.max(maximum, check.id), 0);
-        let previousAvailability = state.lastAvailability.get(key);
-
-        if (!state.initialized) {
-          const latestSuccessful = checks.filter((check) => check.request_success).at(-1);
-          if (latestSuccessful) previousAvailability = latestSuccessful.available;
-        } else {
-          const previousId = state.maxIds.get(key) || 0;
-          let notificationCandidate = null;
-          for (const check of checks.filter((item) => item.id > previousId)) {
-            if (!check.request_success) continue;
-            if (check.available && previousAvailability !== true) {
-              notificationCandidate = check;
-            } else if (!check.available) {
-              notificationCandidate = null;
-            }
-            previousAvailability = check.available;
+      state.timelineScrollFrame = requestAnimationFrame(() => {
+        state.timelineScrollFrame = requestAnimationFrame(() => {
+          state.timelineScrollFrame = null;
+          for (const viewport of elements.targetList.querySelectorAll(".timeline-viewport")) {
+            viewport.scrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
           }
-          if (notificationCandidate && previousAvailability === true) {
-            void notifyAvailability(target, notificationCandidate);
-          }
-        }
-
-        state.maxIds.set(key, latestId);
-        if (previousAvailability !== undefined) {
-          state.lastAvailability.set(key, previousAvailability);
-        }
-      }
-      state.initialized = true;
+        });
+      });
     }
 
-    function render(payload) {
+    function renderDashboard(payload) {
+      updateMonitoringControl(payload.monitoring_enabled);
       state.pollIntervalSeconds = payload.poll_interval_seconds;
-      processNotifications(payload.targets);
-
       elements.targetCount.textContent = payload.targets.length;
-      elements.pollInterval.textContent = formatInterval(payload.poll_interval_seconds);
+      const formattedInterval = formatInterval(payload.poll_interval_seconds);
+      elements.pollInterval.classList.toggle("is-paused", !payload.monitoring_enabled);
+      elements.pollInterval.textContent = payload.monitoring_enabled
+        ? formattedInterval
+        : `Pausiert · ${formattedInterval}`;
 
       const latestDates = payload.targets
         .flatMap((target) => target.checks)
@@ -802,203 +1764,942 @@
         .filter(Boolean)
         .sort();
       elements.lastChecked.textContent = latestDates.length
-        ? formatDate(latestDates.at(-1), true)
+        ? formatDateTime(latestDates.at(-1))
         : "Noch keine Daten";
 
       elements.targetList.innerHTML = "";
+      if (!payload.targets.length) {
+        elements.targetList.innerHTML = `
+          <div class="empty">
+            <span>Es sind keine Überwachungsziele konfiguriert.</span>
+            <button class="button" type="button" data-open-settings>Ziele auswählen</button>
+          </div>
+        `;
+        elements.targetList.querySelector("[data-open-settings]").addEventListener("click", () => activatePage("settings", true));
+        return;
+      }
+
       for (const target of payload.targets) {
         elements.targetList.appendChild(renderTarget(target));
       }
 
-      for (const viewport of document.querySelectorAll(".timeline-viewport")) {
-        viewport.scrollLeft = viewport.scrollWidth;
-      }
+      scrollTimelinesToLatest();
     }
 
-    function setConnection(ok, label) {
+    function updateMonitoringControl(enabled) {
+      state.monitoringEnabled = enabled;
+      elements.monitoringToggle.setAttribute("aria-pressed", String(enabled));
+      elements.monitoringToggle.classList.toggle("primary", !enabled);
+      elements.monitoringToggle.querySelector("span").textContent = enabled
+        ? "Abfragen pausieren"
+        : "Abfragen starten";
+    }
+
+    function setConnection(ok, label, paused = false) {
+      elements.connectionDot.classList.toggle("paused", ok && paused);
       elements.connectionDot.classList.toggle("error", !ok);
       elements.connectionLabel.textContent = label;
     }
 
-    async function refresh() {
+    async function toggleMonitoring() {
+      if (state.monitoringRequestInFlight) return;
+      state.monitoringRequestInFlight = true;
+      const nextEnabled = !state.monitoringEnabled;
+      elements.monitoringToggle.disabled = true;
+      elements.monitoringToggle.classList.add("is-loading");
+
+      try {
+        const response = await fetch("/api/monitoring", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: nextEnabled }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        updateMonitoringControl(result.monitoring_enabled);
+        setConnection(
+          true,
+          result.monitoring_enabled ? "Monitor verbunden" : "Abfragen pausiert",
+          !result.monitoring_enabled,
+        );
+        await refreshDashboard();
+      } catch (error) {
+        setConnection(false, error.message);
+      } finally {
+        state.monitoringRequestInFlight = false;
+        elements.monitoringToggle.disabled = false;
+        elements.monitoringToggle.classList.remove("is-loading");
+      }
+    }
+
+    async function refreshDashboard() {
       if (state.requestInFlight) return;
       state.requestInFlight = true;
       clearTimeout(state.refreshTimer);
       elements.refreshButton.disabled = true;
+      elements.refreshButton.classList.add("is-loading");
+      elements.refreshButton.setAttribute("aria-busy", "true");
+      elements.targetList.setAttribute("aria-busy", "true");
 
       try {
         const response = await fetch(`/api/history?limit=${state.limit}`, { cache: "no-store" });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
-        render(payload);
-        setConnection(true, "Monitor verbunden");
+        renderDashboard(payload);
+        state.longTermLoadedRange = null;
+        setConnection(
+          true,
+          payload.monitoring_enabled ? "Monitor verbunden" : "Abfragen pausiert",
+          !payload.monitoring_enabled,
+        );
       } catch (error) {
         setConnection(false, "Verbindung unterbrochen");
-        elements.targetList.innerHTML = `<div class="global-error">${escapeHtml(error.message)}<br>Neuer Versuch folgt automatisch.</div>`;
+        elements.targetList.innerHTML = `
+          <div class="global-error" role="alert">
+            <span>${escapeHtml(error.message)} Neuer Versuch folgt automatisch.</span>
+            <button class="button" type="button" data-retry>Jetzt erneut versuchen</button>
+          </div>
+        `;
+        elements.targetList.querySelector("[data-retry]").addEventListener("click", refreshDashboard);
       } finally {
         state.requestInFlight = false;
         elements.refreshButton.disabled = false;
+        elements.refreshButton.classList.remove("is-loading");
+        elements.refreshButton.removeAttribute("aria-busy");
+        elements.targetList.setAttribute("aria-busy", "false");
         const delay = Math.max(5000, Math.min(15000, state.pollIntervalSeconds * 250));
-        state.refreshTimer = setTimeout(refresh, delay);
+        state.refreshTimer = setTimeout(refreshDashboard, delay);
       }
     }
 
-    function updateNotificationButton() {
-      const label = elements.notificationButton.querySelector("span:last-child");
-      elements.notificationButton.classList.remove("active");
-      elements.notificationButton.disabled = false;
-      elements.notificationTestButton.disabled = false;
-
-      if (!window.isSecureContext) {
-        label.textContent = "Sicherer Kontext erforderlich";
-        elements.notificationButton.disabled = true;
-        elements.notificationTestButton.disabled = true;
-        setNotificationDiagnostic(
-          "Bitte exakt http://localhost:8080 in einem normalen Browser öffnen.",
-          "error",
-        );
-      } else if (pageIsEmbedded()) {
-        label.textContent = "Externer Browser erforderlich";
-        elements.notificationButton.disabled = true;
-        elements.notificationTestButton.disabled = true;
-        setNotificationDiagnostic(
-          "Benachrichtigungen funktionieren nicht in einer eingebetteten IDE-Vorschau. Öffne die Seite in Safari, Chrome oder Firefox.",
-          "warning",
-        );
-      } else if (!("Notification" in window)) {
-        label.textContent = "Nicht unterstützt";
-        elements.notificationButton.disabled = true;
-        elements.notificationTestButton.disabled = true;
-        setNotificationDiagnostic(
-          "Dieser Browser stellt die Notifications API nicht bereit.",
-          "error",
-        );
-      } else if (Notification.permission === "denied") {
-        label.textContent = "Im Browser blockiert";
-        elements.notificationButton.disabled = true;
-        elements.notificationTestButton.disabled = true;
-        setNotificationDiagnostic(
-          "Berechtigung ist blockiert. Ändere sie in den Website-Einstellungen des Browsers auf ‚Erlauben‘.",
-          "error",
-        );
-      } else if (Notification.permission === "granted" && notificationEnabled()) {
-        label.textContent = "Benachrichtigungen an";
-        elements.notificationButton.classList.add("active");
-        setNotificationDiagnostic(
-          `Browser-Berechtigung erteilt · automatische Meldungen aktiv${state.notificationWorker ? " · Service Worker bereit" : ""}.`,
-          "success",
-        );
-      } else if (Notification.permission === "granted") {
-        label.textContent = "Benachrichtigungen aktivieren";
-        setNotificationDiagnostic(
-          "Browser-Berechtigung erteilt · automatische Meldungen derzeit aus.",
-        );
-      } else {
-        label.textContent = "Benachrichtigungen aktivieren";
-        setNotificationDiagnostic(
-          "Browser-Berechtigung wurde noch nicht angefragt.",
-        );
-      }
+    function targetKey(serverType, location) {
+      return `${serverType}:${location}`;
     }
 
-    elements.notificationButton.addEventListener("click", async () => {
-      if (!("Notification" in window)) return;
+    function catalogFromTargets(targets) {
+      const groups = new Map();
+      for (const target of targets) {
+        if (!groups.has(target.server_type)) {
+          groups.set(target.server_type, {
+            name: target.server_type,
+            description: target.server_type,
+            category: "",
+            architecture: "",
+            cores: null,
+            memory: null,
+            disk: null,
+            locations: [],
+          });
+        }
+        groups.get(target.server_type).locations.push({
+          name: target.location,
+          available: null,
+          recommended: null,
+        });
+      }
+      return Array.from(groups.values());
+    }
 
-      if (Notification.permission === "granted" && notificationEnabled()) {
-        writePreference("notificationsEnabled", "false");
-        updateNotificationButton();
+    function serverSpecs(serverType) {
+      const parts = [];
+      if (serverType.cores) parts.push(`${serverType.cores} vCPU`);
+      if (serverType.memory) parts.push(`${serverType.memory} GB RAM`);
+      if (serverType.disk) parts.push(`${serverType.disk} GB Disk`);
+      if (serverType.architecture) parts.push(serverType.architecture);
+      return parts.join(" · ");
+    }
+
+    function locationBadge(location) {
+      if (location.available === true) {
+        return '<span class="status-badge available">Verfügbar</span>';
+      }
+      if (location.available === false) {
+        return '<span class="status-badge unavailable">Ausgebucht</span>';
+      }
+      return "";
+    }
+
+    function categoryLabel(category) {
+      const rawCategory = String(category || "").trim();
+      if (!rawCategory) return "Weitere Servertypen";
+
+      const normalized = rawCategory.toLowerCase().replaceAll("_", "-");
+      if (["shared", "shared-vcpu", "shared-vcpu-plans"].includes(normalized)) {
+        return "Shared vCPU";
+      }
+      if (["dedicated", "dedicated-vcpu", "dedicated-vcpu-plans"].includes(normalized)) {
+        return "Dedicated vCPU";
+      }
+      if (["arm", "arm64", "ampere"].includes(normalized)) return "Arm64";
+      return rawCategory;
+    }
+
+    function formatPercent(value) {
+      if (value === null || value === undefined) return "–";
+      return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(value)} %`;
+    }
+
+    function formatCurrencyAmount(amount, currency) {
+      let formattedAmount;
+      try {
+        formattedAmount = currency
+          ? new Intl.NumberFormat("de-DE", {
+              style: "currency",
+              currency,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(amount)
+          : new Intl.NumberFormat("de-DE", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).format(amount);
+      } catch (_error) {
+        formattedAmount = `${new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency}`.trim();
+      }
+      return formattedAmount;
+    }
+
+    function formatMonthlyGrossPrice(location) {
+      const amount = Number(location.price_monthly_gross);
+      if (!Number.isFinite(amount)) return "Preis nicht verfügbar";
+      const currency = String(location.price_currency || "").toUpperCase();
+      const formattedAmount = formatCurrencyAmount(amount, currency);
+      return `${formattedAmount} brutto / Monat`;
+    }
+
+    function formatGrossPriceRange(locations) {
+      const pricedLocations = locations
+        .map((location) => ({
+          amount: Number(location.price_monthly_gross),
+          currency: String(location.price_currency || "").toUpperCase(),
+        }))
+        .filter((price) => Number.isFinite(price.amount));
+      if (!pricedLocations.length) return "Preis nicht verfügbar";
+      const amounts = pricedLocations.map((price) => price.amount);
+      const minimum = Math.min(...amounts);
+      const maximum = Math.max(...amounts);
+      const currency = pricedLocations.find((price) => price.currency)?.currency || "";
+      if (minimum === maximum) {
+        return `${formatCurrencyAmount(minimum, currency)} brutto / Monat`;
+      }
+      return `Von ${formatCurrencyAmount(minimum, currency)} bis ${formatCurrencyAmount(maximum, currency)} brutto / Monat`;
+    }
+
+    function compactAvailabilityState(location) {
+      if (location.current_available === true) {
+        return { css: "available", label: "Verfügbar" };
+      }
+      if (location.current_available === false) {
+        return { css: "unavailable", label: "Ausgebucht" };
+      }
+      return { css: "", label: "Status offen" };
+    }
+
+    function availabilityAssessment(value) {
+      if (value === null || value === undefined) return "Noch keine Daten";
+      if (value >= 75) return "Oft verfügbar";
+      if (value >= 25) return "Zeitweise verfügbar";
+      if (value > 0) return "Selten verfügbar";
+      return "Im Zeitraum nie verfügbar";
+    }
+
+    function currentAvailabilityBadge(location) {
+      if (location.current_available === true) {
+        return '<span class="status-badge available">Aktuell verfügbar</span>';
+      }
+      if (location.current_available === false) {
+        return '<span class="status-badge unavailable">Aktuell ausgebucht</span>';
+      }
+      return '<span class="status-badge">Aktueller Status offen</span>';
+    }
+
+    function renderAvailabilityChart(series, locationName) {
+      const values = series.filter((point) => point.availability_percent !== null);
+      const chartLabel = values.length
+        ? `Historischer Verfügbarkeitsverlauf für ${locationName}`
+        : `Noch kein historischer Verfügbarkeitsverlauf für ${locationName}`;
+      const bars = series.map((point) => {
+        const value = point.availability_percent;
+        if (value === null) {
+          return `<span class="availability-bar is-empty" title="${escapeHtml(formatDateTime(point.bucket_start))}: keine Daten"></span>`;
+        }
+        const normalized = Math.max(0, Math.min(100, Number(value)));
+        const cssClass = normalized === 0 ? " is-zero" : "";
+        return `<span class="availability-bar${cssClass}" style="--availability: ${normalized}%" title="${escapeHtml(formatDateTime(point.bucket_start))}: ${escapeHtml(formatPercent(normalized))}"></span>`;
+      }).join("");
+      const firstPoint = series[0];
+      const lastPoint = series.at(-1);
+      return `
+        <div class="availability-chart" role="img" aria-label="${escapeHtml(chartLabel)}">${bars}</div>
+        <div class="availability-axis" aria-hidden="true">
+          <span>${firstPoint ? escapeHtml(formatDateTime(firstPoint.bucket_start)) : "–"}</span>
+          <span>${lastPoint ? escapeHtml(formatDateTime(lastPoint.bucket_start)) : "–"}</span>
+        </div>
+      `;
+    }
+
+    function renderCompactAvailabilityChart(series) {
+      const bars = series.map((point) => {
+        const value = point.availability_percent;
+        if (value === null) return '<span class="compact-availability-bar is-empty"></span>';
+        const normalized = Math.max(0, Math.min(100, Number(value)));
+        const cssClass = normalized === 0 ? " is-zero" : "";
+        return `<span class="compact-availability-bar${cssClass}" style="--availability: ${normalized}%"></span>`;
+      }).join("");
+      return `<span class="compact-availability-chart" aria-hidden="true">${bars}</span>`;
+    }
+
+    function renderMetricLine(element, values, maximum) {
+      const width = 100;
+      const height = 36;
+      const padding = 4;
+      const safeMaximum = Math.max(1, Number(maximum) || 0);
+      let path = "";
+      let drawing = false;
+      let lastPoint = null;
+      values.forEach((rawValue, index) => {
+        const value = Number(rawValue);
+        if (rawValue === null || rawValue === undefined || !Number.isFinite(value)) {
+          drawing = false;
+          return;
+        }
+        const x = values.length <= 1 ? width : index / (values.length - 1) * width;
+        const normalized = Math.max(0, Math.min(safeMaximum, value)) / safeMaximum;
+        const y = height - padding - normalized * (height - padding * 2);
+        const point = `${x.toFixed(2)} ${y.toFixed(2)}`;
+        path += `${drawing ? " L" : "M"}${point}`;
+        drawing = true;
+        lastPoint = { x, y };
+      });
+      element.innerHTML = path
+        ? `
+          <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+            <path class="metric-line-grid" d="M0 ${height - padding} H${width}"></path>
+            <path class="metric-line" d="${path}"></path>
+            ${lastPoint ? `<circle class="metric-line-point" cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="1.5"></circle>` : ""}
+          </svg>
+        `
+        : "";
+    }
+
+    function metricTimeSeries(payload) {
+      const locations = payload.categories.flatMap((category) =>
+        category.server_types.flatMap((serverType) => serverType.locations),
+      );
+      const slotCount = Math.max(0, ...locations.map((location) => location.series.length));
+      const observedTargets = [];
+      const dataCoverage = [];
+      const historicalAvailability = [];
+      const availableTargetShare = [];
+      let coveredCells = 0;
+
+      for (let slot = 0; slot < slotCount; slot += 1) {
+        let observed = 0;
+        let measuredTargets = 0;
+        let totalChecks = 0;
+        let estimatedAvailableChecks = 0;
+        let availableTargetFractions = 0;
+        locations.forEach((location) => {
+          const point = location.series[slot];
+          if (!point || !point.total_checks) return;
+          observed += 1;
+          const percent = Number(point.availability_percent);
+          if (!Number.isFinite(percent)) return;
+          measuredTargets += 1;
+          totalChecks += point.total_checks;
+          estimatedAvailableChecks += point.total_checks * percent / 100;
+          availableTargetFractions += percent / 100;
+        });
+        observedTargets.push(observed);
+        coveredCells += observed;
+        dataCoverage.push(locations.length ? observed / locations.length * 100 : null);
+        historicalAvailability.push(
+          totalChecks ? estimatedAvailableChecks / totalChecks * 100 : null,
+        );
+        availableTargetShare.push(
+          measuredTargets ? availableTargetFractions / measuredTargets * 100 : null,
+        );
+      }
+
+      if (availableTargetShare.length && payload.summary.targets) {
+        availableTargetShare[availableTargetShare.length - 1] =
+          payload.summary.currently_available / payload.summary.targets * 100;
+      }
+      return {
+        observedTargets,
+        dataCoverage,
+        coveragePercent: locations.length && slotCount
+          ? coveredCells / (locations.length * slotCount) * 100
+          : null,
+        historicalAvailability,
+        availableTargetShare,
+      };
+    }
+
+    function renderMetricGraphics(payload, series = metricTimeSeries(payload)) {
+      const total = payload.summary.targets;
+      renderMetricLine(elements.longTermTargetGraphic, series.observedTargets, total);
+      renderMetricLine(elements.longTermDataGraphic, series.dataCoverage, 100);
+      renderMetricLine(
+        elements.longTermAvailabilityGraphic,
+        series.historicalAvailability,
+        100,
+      );
+      renderMetricLine(elements.longTermCurrentGraphic, series.availableTargetShare, 100);
+    }
+
+    function renderLongTerm(payload) {
+      const expandedServers = new Set(
+        Array.from(elements.longTermCatalog.querySelectorAll(".long-term-card[open]"))
+          .map((card) => card.dataset.serverType),
+      );
+      const summary = payload.summary;
+      const timeline = metricTimeSeries(payload);
+      const uniqueLocations = new Set(
+        payload.categories.flatMap((category) =>
+          category.server_types.flatMap((serverType) =>
+            serverType.locations.map((location) => location.name),
+          ),
+        ),
+      );
+      elements.longTermTargetCount.textContent = `${summary.targets} Server & ${uniqueLocations.size} ${uniqueLocations.size === 1 ? "Standort" : "Standorte"}`;
+      elements.longTermDataCount.textContent = formatPercent(timeline.coveragePercent);
+      elements.longTermAvailability.textContent = formatPercent(summary.availability_percent);
+      elements.longTermCurrentCount.textContent = `${summary.currently_available} von ${summary.targets}`;
+      renderMetricGraphics(payload, timeline);
+      elements.longTermStatus.textContent = summary.total_checks
+        ? `${new Intl.NumberFormat("de-DE").format(summary.total_checks)} erfolgreiche Server-/Standortmessungen · Diagrammpunkt je ${formatInterval(payload.range.bucket_hours * 3600)}`
+        : "Die Langzeithistorie beginnt mit dem ersten erfolgreichen Abruf nach dieser Aktualisierung.";
+
+      elements.longTermCatalog.innerHTML = "";
+      if (!payload.categories.length) {
+        elements.longTermCatalog.innerHTML = `
+          <div class="empty">
+            <span>Noch kein Serverkatalog verfügbar.</span>
+            <button class="button" type="button" data-open-settings>Katalog unter Einstellungen laden</button>
+          </div>
+        `;
+        elements.longTermCatalog.querySelector("[data-open-settings]").addEventListener("click", () => activatePage("settings", true));
+        elements.longTermCatalog.setAttribute("aria-busy", "false");
         return;
       }
 
-      try {
-        const permission = await Notification.requestPermission();
-        writePreference("notificationsEnabled", String(permission === "granted"));
-        updateNotificationButton();
-      } catch (error) {
-        setNotificationDiagnostic(
-          `Berechtigungsfehler: ${error.name}: ${error.message}`,
-          "error",
+      for (const category of payload.categories) {
+        const categorySection = document.createElement("section");
+        categorySection.className = "long-term-category";
+        const headingId = `long-term-category-${elements.longTermCatalog.children.length}`;
+        const targetCount = category.server_types.reduce(
+          (count, serverType) => count + serverType.locations.length,
+          0,
         );
+        categorySection.setAttribute("aria-labelledby", headingId);
+        categorySection.innerHTML = `
+          <div class="server-category-heading">
+            <h3 id="${headingId}">${escapeHtml(categoryLabel(category.category))}</h3>
+            <span class="server-category-count">${category.server_types.length} ${category.server_types.length === 1 ? "Servertyp" : "Servertypen"} · ${targetCount} Standorte</span>
+          </div>
+          <div class="long-term-category-grid"></div>
+        `;
+        const grid = categorySection.querySelector(".long-term-category-grid");
+
+        for (const serverType of category.server_types) {
+          const card = document.createElement("details");
+          card.className = "long-term-card";
+          card.dataset.serverType = serverType.name;
+          card.open = expandedServers.has(serverType.name);
+          const specs = serverSpecs(serverType);
+          card.innerHTML = `
+            <summary class="long-term-server-header">
+              <div class="long-term-server-title">
+                <div>
+                  <h4>${escapeHtml(serverType.name)}</h4>
+                  <div class="server-specs">${escapeHtml(specs || serverType.description || "Hetzner Cloud")}</div>
+                </div>
+                <div class="long-term-server-actions">
+                  <span class="long-term-price-range">${escapeHtml(formatGrossPriceRange(serverType.locations))}</span>
+                  <svg class="ui-icon long-term-chevron" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="compact-location-list"></div>
+            </summary>
+            <div class="long-term-locations"></div>
+          `;
+          const compactLocations = card.querySelector(".compact-location-list");
+          const locations = card.querySelector(".long-term-locations");
+          for (const location of serverType.locations) {
+            const compactState = compactAvailabilityState(location);
+            const compactLocation = document.createElement("div");
+            compactLocation.className = "compact-location";
+            compactLocation.innerHTML = `
+              <span class="compact-location-name">${escapeHtml(location.name)}</span>
+              <span class="compact-location-state ${compactState.css}">${escapeHtml(compactState.label)}</span>
+              <span class="compact-location-percent">${escapeHtml(formatPercent(location.availability_percent))}</span>
+              ${renderCompactAvailabilityChart(location.series)}
+            `;
+            compactLocations.appendChild(compactLocation);
+
+            const row = document.createElement("section");
+            row.className = "long-term-location";
+            const checks = new Intl.NumberFormat("de-DE").format(location.total_checks);
+            const lastAvailable = location.last_available_at
+              ? `Zuletzt verfügbar: ${formatDateTime(location.last_available_at)}`
+              : "Im Zeitraum nicht verfügbar beobachtet";
+            row.innerHTML = `
+              <div class="availability-topline">
+                <div class="availability-location">
+                  <span class="availability-location-name">${escapeHtml(location.name)}</span>
+                  ${currentAvailabilityBadge(location)}
+                  ${location.current_recommended ? '<span class="recommendation">Empfohlen</span>' : ""}
+                </div>
+                <div class="availability-value">
+                  <div class="availability-percent">${escapeHtml(formatPercent(location.availability_percent))}</div>
+                  <div class="availability-assessment">${escapeHtml(availabilityAssessment(location.availability_percent))}</div>
+                  <div class="availability-price">${escapeHtml(formatMonthlyGrossPrice(location))}</div>
+                </div>
+              </div>
+              ${renderAvailabilityChart(location.series, location.name)}
+              <div class="availability-meta">
+                <span>${checks} erfolgreiche Messungen</span>
+                <span>${escapeHtml(lastAvailable)}</span>
+              </div>
+            `;
+            locations.appendChild(row);
+          }
+          grid.appendChild(card);
+        }
+        elements.longTermCatalog.appendChild(categorySection);
       }
-    });
+      elements.longTermCatalog.setAttribute("aria-busy", "false");
+    }
 
-    elements.notificationTestButton.addEventListener("click", async () => {
-      if (!("Notification" in window)) return;
+    async function loadLongTerm(force = false) {
+      const range = elements.longTermRange.value;
+      if (
+        state.longTermRequestInFlight
+        || (!force && state.longTermLoadedRange === range)
+      ) return;
+      state.longTermRequestInFlight = true;
+      elements.refreshLongTerm.disabled = true;
+      elements.refreshLongTerm.classList.add("is-loading");
+      elements.longTermCatalog.setAttribute("aria-busy", "true");
+      if (!state.longTermLoadedRange) {
+        elements.longTermCatalog.innerHTML = '<div class="empty"><span class="spinner" aria-hidden="true"></span><span>Langzeitdaten werden geladen …</span></div>';
+      }
 
       try {
-        let permission = Notification.permission;
-        if (permission !== "granted") {
-          permission = await Notification.requestPermission();
-        }
-
-        if (permission !== "granted") {
-          writePreference("notificationsEnabled", "false");
-          updateNotificationButton();
-          setNotificationDiagnostic(
-            `Keine Benachrichtigung: Browser-Berechtigung ist „${permission}“.`,
-            "error",
-          );
-          return;
-        }
-
-        writePreference("notificationsEnabled", "true");
-        updateNotificationButton();
-
-        const delivery = await showBrowserNotification(
-          "HetznerWatch: Test erfolgreich",
-          {
-            body: "Browser-Benachrichtigungen sind korrekt eingerichtet.",
-            tag: "hetzner-notification-test",
-            renotify: true,
-          },
-        );
-        updateNotificationButton();
-
-        if (!delivery.confirmed) {
-          setNotificationDiagnostic(
-            `Chrome hat die Meldung über ${delivery.method} nicht in seiner Notification-Liste bestätigt.`,
-            "error",
-          );
-          return;
-        }
-
-        setNotificationDiagnostic(
-          `Chrome hat die Testmeldung über ${delivery.method} bestätigt. Falls sie nicht sichtbar ist: macOS-Mitteilungen oder Fokus blockieren die Anzeige.`,
-          "success",
-        );
-        if (delivery.notification) delivery.notification.onclick = () => {
-          window.focus();
-          delivery.notification.close();
-        };
+        const response = await fetch(`/api/long-term?range=${encodeURIComponent(range)}`, { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+        renderLongTerm(payload);
+        state.longTermLoadedRange = range;
       } catch (error) {
-        setNotificationDiagnostic(
-          `Test fehlgeschlagen: ${error.name}: ${error.message}`,
-          "error",
-        );
+        elements.longTermStatus.textContent = "";
+        elements.longTermCatalog.innerHTML = `
+          <div class="global-error" role="alert">
+            <span>${escapeHtml(error.message)}</span>
+            <button class="button" type="button" data-retry>Erneut versuchen</button>
+          </div>
+        `;
+        elements.longTermCatalog.querySelector("[data-retry]").addEventListener("click", () => loadLongTerm(true));
+      } finally {
+        state.longTermRequestInFlight = false;
+        elements.refreshLongTerm.disabled = false;
+        elements.refreshLongTerm.classList.remove("is-loading");
+        elements.longTermCatalog.setAttribute("aria-busy", "false");
       }
-    });
+    }
+
+    function renderServerCatalog(catalog, selectedTargets) {
+      const selected = new Set(
+        selectedTargets.map((target) => targetKey(target.server_type, target.location)),
+      );
+      elements.serverCatalog.innerHTML = "";
+
+      if (!catalog.length) {
+        elements.serverCatalog.innerHTML = `
+          <div class="empty">
+            <span>Kein Serverkatalog verfügbar.</span>
+            <button class="button" type="button" data-reload>Katalog erneut laden</button>
+          </div>
+        `;
+        elements.serverCatalog.querySelector("[data-reload]").addEventListener("click", () => loadSettings(true));
+        elements.serverCatalog.setAttribute("aria-busy", "false");
+        updateSelectedTargetCount();
+        return;
+      }
+
+      const categories = new Map();
+      for (const serverType of catalog) {
+        const category = String(serverType.category || "").trim();
+        if (!categories.has(category)) categories.set(category, []);
+        categories.get(category).push(serverType);
+      }
+
+      const sortedCategories = Array.from(categories.entries()).sort((left, right) =>
+        categoryLabel(left[0]).localeCompare(categoryLabel(right[0]), "de"),
+      );
+
+      for (const [category, serverTypes] of sortedCategories) {
+        const categorySection = document.createElement("section");
+        categorySection.className = "server-category";
+        const categoryName = categoryLabel(category);
+        const categoryHeadingId = `server-category-${elements.serverCatalog.children.length}`;
+        categorySection.setAttribute("aria-labelledby", categoryHeadingId);
+        categorySection.innerHTML = `
+          <div class="server-category-heading">
+            <h4 id="${categoryHeadingId}">${escapeHtml(categoryName)}</h4>
+            <span class="server-category-count">${serverTypes.length} ${serverTypes.length === 1 ? "Servertyp" : "Servertypen"}</span>
+          </div>
+          <div class="server-category-grid"></div>
+        `;
+        const categoryGrid = categorySection.querySelector(".server-category-grid");
+
+        for (const serverType of serverTypes) {
+          const group = document.createElement("section");
+          group.className = "server-type-group";
+          const specs = serverSpecs(serverType);
+          group.innerHTML = `
+            <div class="server-type-heading">
+              <div>
+                <h5>${escapeHtml(serverType.name)}</h5>
+                <div class="server-specs">${escapeHtml(specs || serverType.description || "Hetzner Cloud")}</div>
+              </div>
+            </div>
+            <div class="location-list"></div>
+          `;
+          const locationList = group.querySelector(".location-list");
+          for (const location of serverType.locations) {
+            const key = targetKey(serverType.name, location.name);
+            const option = document.createElement("label");
+            option.className = "location-option";
+            option.innerHTML = `
+              <span class="location-option-main">
+                <input type="checkbox" data-server-type="${escapeHtml(serverType.name)}" data-location="${escapeHtml(location.name)}" ${selected.has(key) ? "checked" : ""}>
+                <span class="location-name">${escapeHtml(location.name)}</span>
+                ${location.recommended ? '<span class="recommendation" title="Von Hetzner für diesen Servertyp empfohlener Standort.">Empfohlen</span>' : ""}
+              </span>
+              ${locationBadge(location)}
+            `;
+            option.querySelector("input").addEventListener("change", updateSelectedTargetCount);
+            locationList.appendChild(option);
+          }
+          categoryGrid.appendChild(group);
+        }
+        elements.serverCatalog.appendChild(categorySection);
+      }
+
+      elements.serverCatalog.setAttribute("aria-busy", "false");
+      updateSelectedTargetCount();
+    }
+
+    function selectedTargetInputs() {
+      return Array.from(elements.serverCatalog.querySelectorAll('input[type="checkbox"][data-server-type]'));
+    }
+
+    function updateSelectedTargetCount() {
+      const count = selectedTargetInputs().filter((input) => input.checked).length;
+      elements.selectedTargetCount.textContent = `${count} ${count === 1 ? "Ziel" : "Ziele"} ausgewählt`;
+    }
+
+    function updateAuthFields() {
+      const mode = elements.ntfyAuthMode.value;
+      const basic = mode === "basic";
+      const token = mode === "token";
+      elements.ntfyUsernameField.hidden = !basic;
+      elements.ntfyPasswordField.hidden = !basic;
+      elements.ntfyTokenField.hidden = !token;
+    }
+
+    function updateMessagePreview() {
+      const values = {
+        server_type: "CX23",
+        location: "fsn1",
+        status: "verfügbar",
+        checked_at: "15:00 21.03.2025",
+        recommended: "ja",
+      };
+      elements.messagePreview.textContent = elements.ntfyMessage.value.replace(
+        /\{([a-z_]+)\}/g,
+        (match, key) => values[key] ?? match,
+      );
+    }
+
+    function renderPlaceholderButtons(placeholders) {
+      elements.placeholderList.innerHTML = "";
+      for (const placeholder of placeholders) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "placeholder-button";
+        button.textContent = `{${placeholder}}`;
+        button.addEventListener("click", () => {
+          const token = `{${placeholder}}`;
+          const start = elements.ntfyMessage.selectionStart;
+          const end = elements.ntfyMessage.selectionEnd;
+          elements.ntfyMessage.setRangeText(token, start, end, "end");
+          elements.ntfyMessage.focus();
+          updateMessagePreview();
+        });
+        elements.placeholderList.appendChild(button);
+      }
+    }
+
+    function setSettingsStatus(message, type = "") {
+      elements.settingsStatus.textContent = message;
+      elements.settingsStatus.className = `form-status${type ? ` ${type}` : ""}`;
+    }
+
+    function renderSettings(payload) {
+      elements.pollIntervalInput.value = String(payload.poll_interval_seconds);
+      elements.pollIntervalInput.min = String(payload.limits.min_poll_interval_seconds);
+      elements.pollIntervalInput.max = String(payload.limits.max_poll_interval_seconds);
+
+      const ntfy = payload.ntfy;
+      elements.ntfyEnabled.checked = ntfy.enabled;
+      elements.ntfyDomain.value = ntfy.domain;
+      elements.ntfyTopic.value = ntfy.topic;
+      elements.ntfyAuthMode.value = ntfy.auth_mode;
+      elements.ntfyUsername.value = ntfy.username;
+      elements.ntfyPassword.value = "";
+      elements.ntfyToken.value = "";
+      state.passwordSet = ntfy.password_set;
+      state.tokenSet = ntfy.token_set;
+      elements.ntfyPassword.placeholder = state.passwordSet ? "Passwort ist gespeichert" : "";
+      elements.ntfyToken.placeholder = state.tokenSet ? "Token ist gespeichert" : "";
+      elements.ntfyPasswordHelp.textContent = state.passwordSet
+        ? "Gespeichert. Leer lassen, um das Passwort beizubehalten."
+        : "Passwort für den ntfy-Benutzer.";
+      elements.ntfyTokenHelp.textContent = state.tokenSet
+        ? "Gespeichert. Leer lassen, um das Token beizubehalten."
+        : "Zugriffstoken des ntfy-Servers.";
+      elements.ntfyMessage.value = ntfy.message_template;
+      state.placeholders = payload.placeholders;
+      renderPlaceholderButtons(state.placeholders);
+      updateAuthFields();
+      updateMessagePreview();
+
+      const catalog = payload.server_catalog.length
+        ? payload.server_catalog
+        : catalogFromTargets(payload.monitored_targets);
+      renderServerCatalog(catalog, payload.monitored_targets);
+      elements.catalogStatus.textContent = payload.catalog_error
+        ? `Live-Katalog nicht verfügbar: ${payload.catalog_error}${catalog.length ? " Gespeicherte Daten werden angezeigt." : ""}`
+        : `${catalog.length} Servertypen von Hetzner geladen.`;
+      elements.catalogStatus.className = `catalog-status${payload.catalog_error ? " error" : ""}`;
+      state.settingsLoaded = true;
+      state.longTermLoadedRange = null;
+    }
+
+    async function loadSettings(force = false) {
+      if (state.settingsRequestInFlight || (state.settingsLoaded && !force)) return;
+      state.settingsRequestInFlight = true;
+      elements.reloadCatalog.disabled = true;
+      elements.reloadCatalog.classList.add("is-loading");
+      elements.serverCatalog.setAttribute("aria-busy", "true");
+      if (!state.settingsLoaded) {
+        elements.serverCatalog.innerHTML = '<div class="empty"><span class="spinner" aria-hidden="true"></span><span>Hetzner-Serverkatalog wird geladen …</span></div>';
+      }
+
+      try {
+        const response = await fetch("/api/settings", { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+        renderSettings(payload);
+        setSettingsStatus("");
+      } catch (error) {
+        setSettingsStatus(error.message, "error");
+        if (!state.settingsLoaded) {
+          elements.serverCatalog.innerHTML = `
+            <div class="global-error" role="alert">
+              <span>${escapeHtml(error.message)}</span>
+              <button class="button" type="button" data-retry>Katalog erneut laden</button>
+            </div>
+          `;
+          elements.serverCatalog.querySelector("[data-retry]").addEventListener("click", () => loadSettings(true));
+        }
+      } finally {
+        state.settingsRequestInFlight = false;
+        elements.reloadCatalog.disabled = false;
+        elements.reloadCatalog.classList.remove("is-loading");
+        elements.serverCatalog.setAttribute("aria-busy", "false");
+      }
+    }
+
+    function collectNtfySettings() {
+      return {
+        enabled: elements.ntfyEnabled.checked,
+        domain: elements.ntfyDomain.value,
+        topic: elements.ntfyTopic.value,
+        auth_mode: elements.ntfyAuthMode.value,
+        username: elements.ntfyUsername.value,
+        password: elements.ntfyPassword.value,
+        token: elements.ntfyToken.value,
+        message_template: elements.ntfyMessage.value,
+      };
+    }
+
+    function collectSettings() {
+      const monitoredTargets = selectedTargetInputs()
+        .filter((input) => input.checked)
+        .map((input) => ({
+          server_type: input.dataset.serverType,
+          location: input.dataset.location,
+        }));
+      return {
+        poll_interval_seconds: Number(elements.pollIntervalInput.value),
+        monitored_targets: monitoredTargets,
+        ntfy: collectNtfySettings(),
+      };
+    }
+
+    async function saveSettings(event) {
+      event.preventDefault();
+      const payload = collectSettings();
+      elements.saveSettingsButton.disabled = true;
+      elements.saveSettingsButton.classList.add("is-loading");
+      setSettingsStatus("Einstellungen werden gespeichert …");
+
+      try {
+        const response = await fetch("/api/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        state.passwordSet = result.ntfy.password_set;
+        state.tokenSet = result.ntfy.token_set;
+        elements.ntfyPassword.value = "";
+        elements.ntfyToken.value = "";
+        setSettingsStatus(`Gespeichert: ${formatDateTime(result.saved_at)}`, "success");
+        await refreshDashboard();
+      } catch (error) {
+        setSettingsStatus(error.message, "error");
+      } finally {
+        elements.saveSettingsButton.disabled = false;
+        elements.saveSettingsButton.classList.remove("is-loading");
+      }
+    }
+
+    async function testNtfy() {
+      elements.testNtfyButton.disabled = true;
+      elements.testNtfyButton.classList.add("is-loading");
+      setSettingsStatus("ntfy-Verbindung wird getestet …");
+
+      try {
+        const response = await fetch("/api/settings/ntfy-test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ntfy: collectNtfySettings() }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+        setSettingsStatus(`${result.message} ${formatDateTime(result.sent_at)}`, "success");
+      } catch (error) {
+        setSettingsStatus(error.message, "error");
+      } finally {
+        elements.testNtfyButton.disabled = false;
+        elements.testNtfyButton.classList.remove("is-loading");
+      }
+    }
+
+    function resolvedTheme() {
+      if (document.documentElement.dataset.theme) {
+        return document.documentElement.dataset.theme;
+      }
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+
+    function updateThemeButton() {
+      const dark = resolvedTheme() === "dark";
+      elements.themeButton.setAttribute("aria-pressed", String(dark));
+      elements.themeButton.querySelector("span").textContent = dark ? "Hellmodus" : "Dunkelmodus";
+    }
+
+    function activatePage(page, updateHash) {
+      const availablePages = new Set(["dashboard", "long-term", "settings"]);
+      const activePage = availablePages.has(page) ? page : "dashboard";
+      for (const tab of elements.pageTabs) {
+        const active = tab.dataset.pageTarget === activePage;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", String(active));
+        tab.tabIndex = active ? 0 : -1;
+      }
+      for (const view of elements.pageViews) {
+        const active = view.dataset.page === activePage;
+        view.hidden = !active;
+        view.classList.toggle("is-active", active);
+      }
+      if (updateHash && window.location.hash !== `#${activePage}`) {
+        history.pushState(null, "", `#${activePage}`);
+      }
+      if (activePage === "dashboard") scrollTimelinesToLatest();
+      if (activePage === "settings") void loadSettings();
+      if (activePage === "long-term") void loadLongTerm();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    for (const tab of elements.pageTabs) {
+      tab.addEventListener("click", () => activatePage(tab.dataset.pageTarget, true));
+      tab.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const currentIndex = elements.pageTabs.indexOf(tab);
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex = (currentIndex + direction + elements.pageTabs.length) % elements.pageTabs.length;
+        const nextTab = elements.pageTabs[nextIndex];
+        activatePage(nextTab.dataset.pageTarget, true);
+        nextTab.focus();
+      });
+    }
+
+    for (const link of document.querySelectorAll("[data-open-settings]")) {
+      link.addEventListener("click", () => activatePage("settings", true));
+    }
 
     elements.historyLimit.addEventListener("change", () => {
       state.limit = Number(elements.historyLimit.value);
       writePreference("historyLimit", String(state.limit));
-      refresh();
+      refreshDashboard();
     });
-
-    elements.refreshButton.addEventListener("click", refresh);
+    elements.monitoringToggle.addEventListener("click", toggleMonitoring);
+    elements.refreshButton.addEventListener("click", refreshDashboard);
+    elements.longTermRange.addEventListener("change", () => {
+      state.longTermRange = elements.longTermRange.value;
+      writePreference("longTermRange", state.longTermRange);
+      void loadLongTerm(true);
+    });
+    elements.refreshLongTerm.addEventListener("click", () => loadLongTerm(true));
+    elements.reloadCatalog.addEventListener("click", () => loadSettings(true));
+    elements.selectAllTargets.addEventListener("click", () => {
+      for (const input of selectedTargetInputs()) input.checked = true;
+      updateSelectedTargetCount();
+    });
+    elements.clearAllTargets.addEventListener("click", () => {
+      for (const input of selectedTargetInputs()) input.checked = false;
+      updateSelectedTargetCount();
+    });
+    elements.ntfyAuthMode.addEventListener("change", updateAuthFields);
+    elements.ntfyMessage.addEventListener("input", updateMessagePreview);
+    elements.settingsForm.addEventListener("submit", saveSettings);
+    elements.testNtfyButton.addEventListener("click", testNtfy);
+    elements.themeButton.addEventListener("click", () => {
+      const nextTheme = resolvedTheme() === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      writePreference("hetznerWatchTheme", nextTheme);
+      updateThemeButton();
+    });
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") refresh();
+      if (document.visibilityState === "visible") refreshDashboard();
     });
+    window.addEventListener("hashchange", () => activatePage(window.location.hash.slice(1), false));
 
-    updateNotificationButton();
-    ensureNotificationWorker()
-      .then(() => updateNotificationButton())
-      .catch((error) => {
-        setNotificationDiagnostic(
-          `Service-Worker-Fehler: ${error.name}: ${error.message}`,
-          "error",
-        );
-      });
-    refresh();
+    updateThemeButton();
+    renderPlaceholderButtons(state.placeholders);
+    updateMessagePreview();
+    activatePage(window.location.hash.slice(1), false);
+    refreshDashboard();
   </script>
 </body>
 </html>

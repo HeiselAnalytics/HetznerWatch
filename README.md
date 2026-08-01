@@ -1,8 +1,14 @@
 # Hetzner-Verfügbarkeitsmonitor
 
-Der Monitor prüft alle 60 Sekunden die Verfügbarkeit der konfigurierten
-Hetzner-Cloud-Servertypen, speichert jede Prüfung in SQLite und zeigt den
-Verlauf in einem lokalen Dashboard an.
+Der Monitor prüft die Verfügbarkeit ausgewählter Hetzner-Cloud-Servertypen,
+speichert jede Prüfung in SQLite und zeigt den Verlauf in einem lokalen
+Dashboard an. Die Seite **Langzeit** verdichtet erfolgreiche Gesamtabfragen
+stündlich für alle von Hetzner gelieferten Servertypen und Standorte. Ziele,
+Abfrageintervall und ntfy-Benachrichtigungen werden direkt über die Seite
+**Einstellungen** verwaltet.
+
+Die automatischen Abfragen können im Dashboard jederzeit pausiert und wieder
+gestartet werden. Der Zustand bleibt auch nach einem Container-Neustart erhalten.
 
 ## Starten
 
@@ -25,22 +31,40 @@ Dashboard öffnen:
 http://localhost:8080
 ```
 
-Jede Box im Zeitverlauf entspricht einer Abfrage. Browser-Benachrichtigungen
-können oben rechts im Dashboard aktiviert werden. Sie werden bei einem Wechsel
-auf „verfügbar“ angezeigt, solange die Seite in einem Browser-Tab geöffnet ist.
-Mit „Test senden“ lässt sich die Browser-Berechtigung direkt überprüfen.
+Jede Box im Zeitverlauf entspricht einer Abfrage. Auf der Einstellungsseite
+können alle von der Hetzner API gelieferten Servertyp-/Standort-Kombinationen
+ausgewählt werden. Das Abfrageintervall ist zwischen 10 und 86400 Sekunden
+einstellbar.
 
-Falls keine Meldung erscheint:
+Die Langzeitansicht gruppiert alle Servertypen nach Kategorie und zeigt für
+24 Stunden, 7 Tage, 30 Tage oder 90 Tage die beobachtete Verfügbarkeitsquote
+sowie den monatlichen Bruttopreis je Standort. Servertypen werden zunächst als
+kompakte Standortübersicht dargestellt und lassen sich für die vollständigen
+Zeitverläufe aufklappen. Der Serverkatalog entsteht aus einer Gesamtabfrage;
+Preise werden zentral geladen und höchstens einmal innerhalb von 24 Stunden
+aktualisiert. Die Langzeitdaten werden ab dem ersten erfolgreichen Abruf nach
+Installation gesammelt und sind eine historische Orientierung, keine Prognose.
+Detailabfragen und stündliche Langzeitdaten werden 120 Tage aufbewahrt. Ältere
+Einträge werden beim Start und anschließend automatisch einmal täglich aus der
+SQLite-Datenbank gelöscht.
 
-1. Das Dashboard direkt unter `http://localhost:8080` in Safari, Chrome oder
-   Firefox öffnen, nicht in einer eingebetteten IDE-Vorschau.
-2. Die Benachrichtigungsberechtigung für `localhost` in den Website-Einstellungen
-   des Browsers auf „Erlauben“ setzen.
-3. Unter macOS in **Systemeinstellungen → Mitteilungen** den verwendeten Browser
-   beziehungsweise die Website erlauben und einen aktiven Fokus prüfen.
+Für ntfy werden Domain, Topic und optional Basic Auth oder ein Zugriffstoken
+hinterlegt. Die Nachricht unterstützt diese Platzhalter:
 
-Die Statuszeile unter den Buttons zeigt die erkannte Berechtigung oder den
-konkreten Browserfehler an.
+- `{server_type}`
+- `{location}`
+- `{status}`
+- `{checked_at}`
+- `{recommended}`
+
+Mit **Testnachricht senden** kann die Verbindung geprüft werden. Automatische
+Meldungen werden serverseitig verschickt, wenn ein zuvor nicht verfügbares Ziel
+wieder verfügbar ist; der Browser muss dafür nicht geöffnet bleiben.
+
+Die Einstellungen einschließlich ntfy-Zugangsdaten werden in der lokalen
+SQLite-Datenbank im Docker-Volume gespeichert. `POLL_INTERVAL_SECONDS` aus
+`.env` dient beim ersten Start als Standardwert; danach gilt der Wert aus der
+Einstellungsseite.
 
 ## Logs anzeigen
 

@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY index.html .
-COPY service-worker.js .
+COPY static ./static
+COPY test_app.py .
 
 CMD ["python", "app.py"]

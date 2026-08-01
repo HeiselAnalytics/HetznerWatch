@@ -2,3 +2,20 @@
 __pycache__/
 *.pyc
 *.db
+
+# Heisel Project Tools
+/Heisel_ProjectTools/
+/AGENTS.md
+.DS_Store
+.env.*
+!.env.example
+*.pem
+*.key
+.secrets/
+credentials.*
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+node_modules/
