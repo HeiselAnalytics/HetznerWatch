@@ -14,53 +14,33 @@ availability, and receive ntfy notifications when capacity returns.
 
 `Docker` · `Python` · `SQLite` · `ntfy` · `English & Deutsch`
 
-[Deutsche Dokumentation](README.de.md)
-
 <br clear="right">
 
 ## Install locally
 
-HetznerWatch runs locally on macOS, Windows and Linux with Docker. You do not
-need to install Python or create a `.env` file.
+HetznerWatch runs locally on macOS, Windows and Linux. You do not need Git,
+Python or a `.env` file.
 
-### 1. Install Docker
+### 1. Install and open Docker Desktop
 
-Install Docker Desktop on macOS or Windows. On Linux, install Docker Engine and
-the Docker Compose plugin. The
+Install Docker Desktop on macOS or Windows and make sure it is running. On
+Linux, install Docker Engine. The
 [official Docker installation guide](https://docs.docker.com/get-started/get-docker/)
 covers all supported systems.
 
-Open Terminal (macOS/Linux) or PowerShell (Windows) and confirm that Docker is
-ready:
+### 2. Start with one command
+
+Open Terminal (macOS/Linux) or PowerShell (Windows), paste this command, and
+press Enter:
 
 ```bash
-docker compose version
+docker run -d --name hetznerwatch --restart unless-stopped -p 8080:8080 -v hetznerwatch-data:/data ghcr.io/heiselanalytics/hetznerwatch:latest
 ```
 
-### 2. Download HetznerWatch
+Docker downloads the ready-to-use image, starts it in the background and keeps
+all settings and history in the persistent volume `hetznerwatch-data`.
 
-Run:
-
-```bash
-git clone https://github.com/HeiselAnalytics/HetznerWatch.git
-cd HetznerWatch
-```
-
-If Git is not installed, open the
-[HetznerWatch repository](https://github.com/HeiselAnalytics/HetznerWatch),
-select **Code → Download ZIP**, extract the archive, and open a terminal in the
-extracted folder.
-
-### 3. Start HetznerWatch
-
-```bash
-docker compose up -d --build
-```
-
-The first build can take a minute. Docker starts HetznerWatch in the background
-and keeps its data in a persistent local volume.
-
-### 4. Complete the setup
+### 3. Open and configure
 
 Open [http://localhost:8080](http://localhost:8080) and go to **Settings**. Add a
 Hetzner Cloud API token with **Read** permission. Settings save automatically;
@@ -72,24 +52,37 @@ Tokens → Generate API Token**. Copy it immediately because it is only shown
 once. See the
 [official Hetzner documentation](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/).
 
-### Stop or update later
-
-Stop HetznerWatch without deleting its data:
-
-```bash
-docker compose down
-```
-
-Install the latest version after it has been published:
+<details>
+<summary>Build HetznerWatch from source instead</summary>
 
 ```bash
-git pull
+git clone https://github.com/HeiselAnalytics/HetznerWatch.git
+cd HetznerWatch
 docker compose up -d --build
 ```
 
-When upgrading from an older release, an existing `HCLOUD_TOKEN` in `.env` is
-imported into SQLite on the first start. After confirming the token in Settings,
-the old file can be removed.
+When upgrading from a version that used `.env`, Docker Compose imports an
+existing `HCLOUD_TOKEN` into SQLite on the first start. The old file can be
+removed after the token is shown as configured in Settings.
+
+</details>
+
+### Stop or update later
+
+Stop or start HetznerWatch without deleting its data:
+
+```bash
+docker stop hetznerwatch
+docker start hetznerwatch
+```
+
+Install the latest published image while keeping the data volume:
+
+```bash
+docker pull ghcr.io/heiselanalytics/hetznerwatch:latest
+docker rm -f hetznerwatch
+docker run -d --name hetznerwatch --restart unless-stopped -p 8080:8080 -v hetznerwatch-data:/data ghcr.io/heiselanalytics/hetznerwatch:latest
+```
 
 ## Features
 
@@ -128,17 +121,17 @@ The click action is described in the [publish documentation](https://docs.ntfy.s
 View logs:
 
 ```bash
-docker compose logs -f monitor
+docker logs -f hetznerwatch
 ```
 
 Stop the application:
 
 ```bash
-docker compose down
+docker stop hetznerwatch
 ```
 
-The named Docker volume `monitor-data` keeps the SQLite database across
-container rebuilds and normal `docker compose down` operations.
+The named Docker volume `hetznerwatch-data` keeps the SQLite database when the
+container is stopped, removed or replaced.
 
 ## Data and security
 
@@ -160,7 +153,3 @@ python -m unittest -v
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
-
-## License
-
-[MIT](LICENSE)

@@ -2114,11 +2114,11 @@
 
         <section class="documentation-section" id="instructions-start">
           <h3 data-i18n="instructions.startTitle">1. Start HetznerWatch</h3>
-          <p data-i18n="instructions.startIntro">Docker Compose starts the application and its persistent SQLite volume. No .env file is required.</p>
+          <p data-i18n="instructions.startIntro">Docker starts the ready-to-use application and keeps its SQLite data in a persistent volume. Git, Python and an .env file are not required.</p>
           <ol>
-            <li data-i18n="instructions.start1">Install Docker Desktop or Docker Engine with Docker Compose.</li>
-            <li data-i18n="instructions.start2">Open a terminal in the HetznerWatch project directory.</li>
-            <li><span data-i18n="instructions.start3">Build and start the service:</span> <code>docker compose up -d --build</code></li>
+            <li data-i18n="instructions.start1">Install and open Docker Desktop, or install Docker Engine on Linux.</li>
+            <li data-i18n="instructions.start2">Open Terminal on macOS/Linux or PowerShell on Windows.</li>
+            <li><span data-i18n="instructions.start3">Paste the one-command installation:</span> <code>docker run -d --name hetznerwatch --restart unless-stopped -p 8080:8080 -v hetznerwatch-data:/data ghcr.io/heiselanalytics/hetznerwatch:latest</code></li>
             <li><span data-i18n="instructions.start4">Open the local dashboard:</span> <code>http://localhost:8080</code></li>
           </ol>
         </section>
@@ -2244,9 +2244,9 @@
         <section class="documentation-section" id="instructions-operate">
           <h3 data-i18n="instructions.operateTitle">7. Operate and update HetznerWatch</h3>
           <ul>
-            <li><span data-i18n="instructions.logs">Follow runtime messages with</span> <code>docker compose logs -f</code>.</li>
-            <li><span data-i18n="instructions.restart">Restart the service with</span> <code>docker compose up -d</code>.</li>
-            <li><span data-i18n="instructions.update">After pulling an update, rebuild with</span> <code>docker compose up -d --build</code>.</li>
+            <li><span data-i18n="instructions.logs">Follow runtime messages with</span> <code>docker logs -f hetznerwatch</code>.</li>
+            <li><span data-i18n="instructions.restart">Restart the container with</span> <code>docker restart hetznerwatch</code>.</li>
+            <li data-i18n="instructions.update">To update, pull the latest image, replace the container and repeat the one-command installation. The named data volume remains intact.</li>
             <li data-i18n="instructions.data">Settings, secrets and history live in the SQLite database inside the named Docker volume.</li>
             <li data-i18n="instructions.security">Back up the volume before replacing the installation and protect the dashboard before exposing it to a network.</li>
           </ul>
@@ -2465,10 +2465,10 @@
         "instructions.tocNtfy": "Configure ntfy notifications",
         "instructions.tocOperate": "Operate and update the installation",
         "instructions.startTitle": "1. Start HetznerWatch",
-        "instructions.startIntro": "Docker Compose starts the application and its persistent SQLite volume. No .env file is required.",
-        "instructions.start1": "Install Docker Desktop or Docker Engine with Docker Compose.",
-        "instructions.start2": "Open a terminal in the HetznerWatch project directory.",
-        "instructions.start3": "Build and start the service:",
+        "instructions.startIntro": "Docker starts the ready-to-use application and keeps its SQLite data in a persistent volume. Git, Python and an .env file are not required.",
+        "instructions.start1": "Install and open Docker Desktop, or install Docker Engine on Linux.",
+        "instructions.start2": "Open Terminal on macOS/Linux or PowerShell on Windows.",
+        "instructions.start3": "Paste the one-command installation:",
         "instructions.start4": "Open the local dashboard:",
         "instructions.tokenTitle": "2. Connect the Hetzner API",
         "instructions.tokenIntro": "HetznerWatch only needs a read-only token to load the server catalog and availability information.",
@@ -2524,8 +2524,8 @@
         "instructions.ntfyNote": "Anyone who knows a public topic can read or publish to it. Keep the generated topic private. The dashboard link must also be reachable from your phone.",
         "instructions.operateTitle": "7. Operate and update HetznerWatch",
         "instructions.logs": "Follow runtime messages with",
-        "instructions.restart": "Restart the service with",
-        "instructions.update": "After pulling an update, rebuild with",
+        "instructions.restart": "Restart the container with",
+        "instructions.update": "To update, pull the latest image, replace the container and repeat the one-command installation. The named data volume remains intact.",
         "instructions.data": "Settings, secrets and history live in the SQLite database inside the named Docker volume.",
         "instructions.security": "Back up the volume before replacing the installation and protect the dashboard before exposing it to a network.",
         "help.information": "Information"
@@ -2736,10 +2736,10 @@
         "instructions.tocNtfy": "ntfy-Benachrichtigungen einrichten",
         "instructions.tocOperate": "Installation betreiben und aktualisieren",
         "instructions.startTitle": "1. HetznerWatch starten",
-        "instructions.startIntro": "Docker Compose startet die Anwendung und ihr dauerhaftes SQLite-Volume. Eine .env-Datei ist nicht erforderlich.",
-        "instructions.start1": "Installiere Docker Desktop oder Docker Engine mit Docker Compose.",
-        "instructions.start2": "Öffne ein Terminal im HetznerWatch-Projektverzeichnis.",
-        "instructions.start3": "Baue und starte den Dienst:",
+        "instructions.startIntro": "Docker startet die fertige Anwendung und speichert ihre SQLite-Daten dauerhaft in einem Volume. Git, Python und eine .env-Datei sind nicht erforderlich.",
+        "instructions.start1": "Installiere und öffne Docker Desktop oder installiere Docker Engine unter Linux.",
+        "instructions.start2": "Öffne das Terminal unter macOS/Linux oder PowerShell unter Windows.",
+        "instructions.start3": "Füge den Ein-Befehl-Start ein:",
         "instructions.start4": "Öffne das lokale Dashboard:",
         "instructions.tokenTitle": "2. Hetzner-API verbinden",
         "instructions.tokenIntro": "HetznerWatch benötigt nur einen Token mit Leserechten, um Serverkatalog und Verfügbarkeiten zu laden.",
@@ -2795,8 +2795,8 @@
         "instructions.ntfyNote": "Jeder, der ein öffentliches Topic kennt, kann es lesen oder dort veröffentlichen. Halte das erzeugte Topic geheim. Auch der Dashboard-Link muss vom Smartphone erreichbar sein.",
         "instructions.operateTitle": "7. HetznerWatch betreiben und aktualisieren",
         "instructions.logs": "Verfolge Laufzeitmeldungen mit",
-        "instructions.restart": "Starte den Dienst neu mit",
-        "instructions.update": "Baue nach dem Abrufen eines Updates neu mit",
+        "instructions.restart": "Starte den Container neu mit",
+        "instructions.update": "Ziehe für ein Update das neueste Image, ersetze den Container und wiederhole den Ein-Befehl-Start. Das benannte Datenvolume bleibt erhalten.",
         "instructions.data": "Einstellungen, Geheimnisse und Verlauf liegen in der SQLite-Datenbank im benannten Docker-Volume.",
         "instructions.security": "Sichere das Volume vor einem Austausch der Installation und schütze das Dashboard, bevor du es in einem Netzwerk freigibst.",
         "help.information": "Information"
