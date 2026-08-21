@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import signal
 import sqlite3
 import string
@@ -14,7 +15,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_file
 from werkzeug.serving import make_server
 
@@ -27,8 +27,8 @@ DEFAULT_MONITORED_TARGETS = [
     {"server_type": "cx33", "location": "nbg1"},
 ]
 DEFAULT_NTFY_MESSAGE_TEMPLATE = (
-    "{server_type} ist in {location} verfügbar. "
-    "Status: {status}. Geprüft: {checked_at}. Empfohlen: {recommended}."
+    "{server_type} is available in {location}. "
+    "Status: {status}. Checked: {checked_at}. Recommended: {recommended}."
 )
 ALLOWED_TEMPLATE_FIELDS = {
     "server_type",
@@ -39,6 +39,139 @@ ALLOWED_TEMPLATE_FIELDS = {
 }
 TARGET_VALUE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 TOPIC_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+DEFAULT_NTFY_TOPIC_PREFIX = "hetznerwatch_"
+DEFAULT_NTFY_TOPIC_WORD_COUNT = 4
+DEFAULT_NTFY_TOPIC_SEPARATOR_DIGITS = 3
+NTFY_TOPIC_WORDS = (
+    "acorn",
+    "almond",
+    "amber",
+    "apple",
+    "arrow",
+    "atlas",
+    "aurora",
+    "bamboo",
+    "basil",
+    "beach",
+    "berry",
+    "birch",
+    "bloom",
+    "breeze",
+    "brook",
+    "cedar",
+    "cherry",
+    "cloud",
+    "clover",
+    "comet",
+    "coral",
+    "cosmos",
+    "cove",
+    "crane",
+    "creek",
+    "dawn",
+    "delta",
+    "dream",
+    "drift",
+    "dune",
+    "eagle",
+    "echo",
+    "elm",
+    "ember",
+    "fern",
+    "field",
+    "finch",
+    "fjord",
+    "flame",
+    "flora",
+    "forest",
+    "fox",
+    "frost",
+    "galaxy",
+    "garden",
+    "glade",
+    "globe",
+    "glow",
+    "grass",
+    "grove",
+    "harbor",
+    "hazel",
+    "heron",
+    "hill",
+    "honey",
+    "iris",
+    "island",
+    "ivory",
+    "jade",
+    "juniper",
+    "lake",
+    "lark",
+    "leaf",
+    "lemon",
+    "lilac",
+    "lime",
+    "lotus",
+    "maple",
+    "meadow",
+    "mint",
+    "mist",
+    "moon",
+    "moss",
+    "navy",
+    "north",
+    "oak",
+    "ocean",
+    "olive",
+    "onyx",
+    "opal",
+    "orbit",
+    "otter",
+    "palm",
+    "pearl",
+    "pebble",
+    "pine",
+    "plum",
+    "pond",
+    "poppy",
+    "quartz",
+    "rain",
+    "raven",
+    "reed",
+    "reef",
+    "river",
+    "robin",
+    "rose",
+    "ruby",
+    "sage",
+    "sand",
+    "shell",
+    "sky",
+    "snow",
+    "solar",
+    "south",
+    "spark",
+    "spring",
+    "star",
+    "stone",
+    "storm",
+    "sun",
+    "swift",
+    "teal",
+    "terra",
+    "thyme",
+    "tide",
+    "tiger",
+    "tulip",
+    "valley",
+    "violet",
+    "wave",
+    "west",
+    "willow",
+    "wind",
+    "winter",
+    "wolf",
+    "wood",
+    "zenith",
+)
 MIN_POLL_INTERVAL_SECONDS = 10
 MAX_POLL_INTERVAL_SECONDS = 86_400
 PRICING_REFRESH_SECONDS = 86_400
@@ -103,6 +236,8 @@ WEB_HOST = "0.0.0.0"
 WEB_PORT = 8080
 STOP_EVENT = threading.Event()
 WAKE_EVENT = threading.Event()
+INITIAL_CHECK_COMPLETED_EVENT = threading.Event()
+CHECK_LOCK = threading.Lock()
 WEB_APP = Flask(__name__)
 INDEX_PATH = Path(__file__).with_name("index.html")
 
@@ -196,8 +331,8 @@ def load_configuration() -> None:
     global WEB_HOST
     global WEB_PORT
 
-    load_dotenv()
-
+    # Environment variables remain available for container/runtime tuning and
+    # one-time migration, but a .env file is never required.
     HCLOUD_TOKEN = os.getenv("HCLOUD_TOKEN", "").strip()
     POLL_INTERVAL_SECONDS = _positive_float_from_env(
         "POLL_INTERVAL_SECONDS",
@@ -224,21 +359,39 @@ def utc_timestamp() -> str:
     )
 
 
+def generate_default_ntfy_topic() -> str:
+    words = [
+        secrets.choice(NTFY_TOPIC_WORDS)
+        for _ in range(DEFAULT_NTFY_TOPIC_WORD_COUNT)
+    ]
+    separator_limit = 10**DEFAULT_NTFY_TOPIC_SEPARATOR_DIGITS
+    suffix = words[0]
+    for word in words[1:]:
+        separator = secrets.randbelow(separator_limit)
+        suffix += f"{separator:0{DEFAULT_NTFY_TOPIC_SEPARATOR_DIGITS}d}{word}"
+    return f"{DEFAULT_NTFY_TOPIC_PREFIX}{suffix}"
+
+
 def _setting_defaults() -> dict[str, str]:
     default_interval = min(
         MAX_POLL_INTERVAL_SECONDS,
         max(MIN_POLL_INTERVAL_SECONDS, POLL_INTERVAL_SECONDS),
     )
     return {
+        "hcloud_token": HCLOUD_TOKEN,
+        "language": "en",
+        "custom_logo_url": "",
         "monitoring_enabled": "true",
         "poll_interval_seconds": f"{default_interval:g}",
         "ntfy_enabled": "false",
         "ntfy_domain": "https://ntfy.sh",
-        "ntfy_topic": "",
+        "ntfy_topic": generate_default_ntfy_topic(),
+        "ntfy_default_topic_initialized": "true",
         "ntfy_auth_mode": "none",
         "ntfy_username": "",
         "ntfy_password": "",
         "ntfy_token": "",
+        "ntfy_dashboard_url": f"http://localhost:{WEB_PORT}",
         "ntfy_message_template": DEFAULT_NTFY_MESSAGE_TEMPLATE,
         "server_catalog_json": "[]",
         "pricing_json": "{}",
@@ -254,10 +407,22 @@ def init_database() -> None:
 
     with sqlite3.connect(DATABASE_PATH) as connection:
         connection.executescript(CREATE_DATABASE_SQL)
+        topic_default_was_initialized = connection.execute(
+            "SELECT 1 FROM app_settings WHERE key = ?",
+            ("ntfy_default_topic_initialized",),
+        ).fetchone() is not None
+        defaults = _setting_defaults()
         connection.executemany(
             "INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)",
-            _setting_defaults().items(),
+            defaults.items(),
         )
+        if not topic_default_was_initialized:
+            stored_topic = connection.execute(
+                "SELECT value FROM app_settings WHERE key = ?",
+                ("ntfy_topic",),
+            ).fetchone()
+            if stored_topic is None or not str(stored_topic[0]).strip():
+                _save_setting(connection, "ntfy_topic", defaults["ntfy_topic"])
         target_count = connection.execute(
             "SELECT COUNT(*) FROM monitored_targets"
         ).fetchone()[0]
@@ -349,9 +514,42 @@ def get_monitoring_enabled(
             active_connection.close()
 
 
+def get_hcloud_token(
+    connection: sqlite3.Connection | None = None,
+) -> str:
+    owns_connection = connection is None
+    active_connection = connection or sqlite3.connect(DATABASE_PATH)
+    try:
+        return _load_setting(active_connection, "hcloud_token") or HCLOUD_TOKEN
+    except (OSError, sqlite3.Error):
+        return HCLOUD_TOKEN
+    finally:
+        if owns_connection:
+            active_connection.close()
+
+
+def get_application_language() -> str:
+    try:
+        with sqlite3.connect(DATABASE_PATH) as connection:
+            language = _load_setting(connection, "language")
+        return language if language in {"en", "de"} else "en"
+    except (OSError, sqlite3.Error):
+        return "en"
+
+
+def localized_message(english: str, german: str) -> str:
+    return german if get_application_language() == "de" else english
+
+
 def fetch_server_types() -> tuple[dict[str, Any], int]:
-    if not HCLOUD_TOKEN:
-        raise ApiFetchError("HCLOUD_TOKEN ist nicht gesetzt.")
+    token = get_hcloud_token()
+    if not token:
+        raise ApiFetchError(
+            localized_message(
+                "The Hetzner Cloud API token is not configured.",
+                "Der Hetzner-Cloud-API-Token ist nicht eingerichtet.",
+            )
+        )
 
     server_types: list[Any] = []
     page = 1
@@ -361,17 +559,23 @@ def fetch_server_types() -> tuple[dict[str, Any], int]:
         try:
             response = requests.get(
                 API_URL,
-                headers={"Authorization": f"Bearer {HCLOUD_TOKEN}"},
+                headers={"Authorization": f"Bearer {token}"},
                 params={"per_page": 50, "page": page},
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
         except requests.Timeout as error:
             raise ApiFetchError(
-                f"API-Timeout nach {REQUEST_TIMEOUT_SECONDS:g} Sekunden."
+                localized_message(
+                    f"API timeout after {REQUEST_TIMEOUT_SECONDS:g} seconds.",
+                    f"API-Timeout nach {REQUEST_TIMEOUT_SECONDS:g} Sekunden.",
+                )
             ) from error
         except requests.RequestException as error:
             raise ApiFetchError(
-                f"API nicht erreichbar ({type(error).__name__})."
+                localized_message(
+                    f"API unreachable ({type(error).__name__}).",
+                    f"API nicht erreichbar ({type(error).__name__}).",
+                )
             ) from error
 
         http_status_code = response.status_code
@@ -379,7 +583,10 @@ def fetch_server_types() -> tuple[dict[str, Any], int]:
             response.raise_for_status()
         except requests.HTTPError as error:
             raise ApiFetchError(
-                f"HTTP-Fehler {http_status_code} von der Hetzner API.",
+                localized_message(
+                    f"HTTP error {http_status_code} from the Hetzner API.",
+                    f"HTTP-Fehler {http_status_code} von der Hetzner API.",
+                ),
                 http_status_code,
             ) from error
 
@@ -387,18 +594,29 @@ def fetch_server_types() -> tuple[dict[str, Any], int]:
             payload = response.json()
         except (requests.exceptions.JSONDecodeError, ValueError) as error:
             raise ApiFetchError(
-                "Die Hetzner API hat ungültiges JSON zurückgegeben.",
+                localized_message(
+                    "The Hetzner API returned invalid JSON.",
+                    "Die Hetzner API hat ungültiges JSON zurückgegeben.",
+                ),
                 http_status_code,
             ) from error
 
         if not isinstance(payload, dict):
             raise ApiFetchError(
-                "Die Hetzner API hat kein JSON-Objekt zurückgegeben.",
+                localized_message(
+                    "The Hetzner API did not return a JSON object.",
+                    "Die Hetzner API hat kein JSON-Objekt zurückgegeben.",
+                ),
                 http_status_code,
             )
         page_server_types = payload.get("server_types")
         if not isinstance(page_server_types, list):
-            raise ApiFetchError("Feld 'server_types' fehlt oder ist ungültig.")
+            raise ApiFetchError(
+                localized_message(
+                    "Field 'server_types' is missing or invalid.",
+                    "Feld 'server_types' fehlt oder ist ungültig.",
+                )
+            )
         server_types.extend(page_server_types)
 
         meta = payload.get("meta")
@@ -414,42 +632,65 @@ def fetch_server_types() -> tuple[dict[str, Any], int]:
 
 
 def fetch_pricing() -> dict[str, Any]:
-    if not HCLOUD_TOKEN:
-        raise ApiFetchError("HCLOUD_TOKEN ist nicht gesetzt.")
+    token = get_hcloud_token()
+    if not token:
+        raise ApiFetchError(
+            localized_message(
+                "The Hetzner Cloud API token is not configured.",
+                "Der Hetzner-Cloud-API-Token ist nicht eingerichtet.",
+            )
+        )
     try:
         response = requests.get(
             PRICING_URL,
-            headers={"Authorization": f"Bearer {HCLOUD_TOKEN}"},
+            headers={"Authorization": f"Bearer {token}"},
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
     except requests.Timeout as error:
         raise ApiFetchError(
-            f"Preis-API-Timeout nach {REQUEST_TIMEOUT_SECONDS:g} Sekunden."
+            localized_message(
+                f"Pricing API timeout after {REQUEST_TIMEOUT_SECONDS:g} seconds.",
+                f"Preis-API-Timeout nach {REQUEST_TIMEOUT_SECONDS:g} Sekunden.",
+            )
         ) from error
     except requests.RequestException as error:
         raise ApiFetchError(
-            f"Preis-API nicht erreichbar ({type(error).__name__})."
+            localized_message(
+                f"Pricing API unreachable ({type(error).__name__}).",
+                f"Preis-API nicht erreichbar ({type(error).__name__}).",
+            )
         ) from error
 
     try:
         response.raise_for_status()
     except requests.HTTPError as error:
         raise ApiFetchError(
-            f"HTTP-Fehler {response.status_code} von der Hetzner Preis-API.",
+            localized_message(
+                f"HTTP error {response.status_code} from the Hetzner pricing API.",
+                f"HTTP-Fehler {response.status_code} von der Hetzner Preis-API.",
+            ),
             response.status_code,
         ) from error
     try:
         payload = response.json()
     except (requests.exceptions.JSONDecodeError, ValueError) as error:
         raise ApiFetchError(
-            "Die Hetzner Preis-API hat ungültiges JSON zurückgegeben.",
+            localized_message(
+                "The Hetzner pricing API returned invalid JSON.",
+                "Die Hetzner Preis-API hat ungültiges JSON zurückgegeben.",
+            ),
             response.status_code,
         ) from error
     pricing = payload.get("pricing") if isinstance(payload, dict) else None
     if not isinstance(pricing, dict) or not isinstance(
         pricing.get("server_types"), list
     ):
-        raise ApiFetchError("Die Preisdaten der Hetzner API sind ungültig.")
+        raise ApiFetchError(
+            localized_message(
+                "The Hetzner API pricing data is invalid.",
+                "Die Preisdaten der Hetzner API sind ungültig.",
+            )
+        )
     return pricing
 
 
@@ -517,7 +758,12 @@ def server_catalog_from_payload(
 ) -> list[dict[str, Any]]:
     raw_server_types = payload.get("server_types")
     if not isinstance(raw_server_types, list):
-        raise ApiFetchError("Feld 'server_types' fehlt oder ist ungültig.")
+        raise ApiFetchError(
+            localized_message(
+                "Field 'server_types' is missing or invalid.",
+                "Feld 'server_types' fehlt oder ist ungültig.",
+            )
+        )
 
     centralized_prices = {
         item.get("name"): item.get("prices", [])
@@ -1118,6 +1364,119 @@ def _parse_boolean(value: str) -> bool:
     return value.strip().lower() == "true"
 
 
+def load_general_config(
+    connection: sqlite3.Connection | None = None,
+) -> dict[str, Any]:
+    owns_connection = connection is None
+    active_connection = connection or sqlite3.connect(DATABASE_PATH)
+    try:
+        return {
+            "language": _load_setting(active_connection, "language") or "en",
+            "custom_logo_url": _load_setting(
+                active_connection,
+                "custom_logo_url",
+            ),
+            "hcloud_token": _load_setting(active_connection, "hcloud_token"),
+        }
+    finally:
+        if owns_connection:
+            active_connection.close()
+
+
+def public_general_config(config: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "language": config["language"],
+        "custom_logo_url": config["custom_logo_url"],
+        "hcloud_token_set": bool(config["hcloud_token"]),
+    }
+
+
+def _validate_http_url(
+    value: str,
+    field_name: str,
+    german_field_name: str,
+) -> str:
+    parsed_url = urlparse(value)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+        raise SettingsValidationError(
+            localized_message(
+                f"{field_name} must be a complete HTTP or HTTPS URL.",
+                f"{german_field_name} muss eine vollständige HTTP- oder HTTPS-URL sein.",
+            )
+        )
+    if parsed_url.username or parsed_url.password:
+        raise SettingsValidationError(
+            localized_message(
+                f"{field_name} must not contain credentials.",
+                f"{german_field_name} darf keine Zugangsdaten enthalten.",
+            )
+        )
+    if len(value) > 2_048:
+        raise SettingsValidationError(
+            localized_message(
+                f"{field_name} must not exceed 2048 characters.",
+                f"{german_field_name} darf höchstens 2048 Zeichen enthalten.",
+            )
+        )
+    return value
+
+
+def validate_general_config(
+    raw_config: Any,
+    stored_config: dict[str, Any],
+) -> dict[str, Any]:
+    if raw_config is None:
+        raw_config = {}
+    if not isinstance(raw_config, dict):
+        raise SettingsValidationError(
+            localized_message(
+                "The general settings are invalid.",
+                "Die allgemeinen Einstellungen sind ungültig.",
+            )
+        )
+
+    language = _clean_text(raw_config.get("language")) or stored_config["language"]
+    if language not in {"en", "de"}:
+        raise SettingsValidationError(
+            localized_message(
+                "The selected language is invalid.",
+                "Die gewählte Sprache ist ungültig.",
+            )
+        )
+
+    custom_logo_url = (
+        _clean_text(raw_config.get("custom_logo_url"))
+        if "custom_logo_url" in raw_config
+        else stored_config["custom_logo_url"]
+    )
+    if custom_logo_url:
+        _validate_http_url(
+            custom_logo_url,
+            "The custom logo URL",
+            "Die eigene Logo-URL",
+        )
+
+    hcloud_token = (
+        _clean_text(raw_config.get("hcloud_token"))
+        or stored_config["hcloud_token"]
+    )
+    if len(hcloud_token) > 512 or any(
+        character.isspace() for character in hcloud_token
+    ):
+        raise SettingsValidationError(
+            localized_message(
+                "The Hetzner Cloud API token is invalid.",
+                "Der Hetzner-Cloud-API-Token ist ungültig.",
+            )
+        )
+
+    return {
+        "language": language,
+        "custom_logo_url": custom_logo_url,
+        "hcloud_token": hcloud_token,
+    }
+
+
 def load_ntfy_config(
     connection: sqlite3.Connection | None = None,
 ) -> dict[str, Any]:
@@ -1136,6 +1495,10 @@ def load_ntfy_config(
             "username": _load_setting(active_connection, "ntfy_username"),
             "password": _load_setting(active_connection, "ntfy_password"),
             "token": _load_setting(active_connection, "ntfy_token"),
+            "dashboard_url": _load_setting(
+                active_connection,
+                "ntfy_dashboard_url",
+            ),
             "message_template": (
                 _load_setting(active_connection, "ntfy_message_template")
                 or DEFAULT_NTFY_MESSAGE_TEMPLATE
@@ -1155,6 +1518,7 @@ def public_ntfy_config(config: dict[str, Any]) -> dict[str, Any]:
         "username": config["username"],
         "password_set": bool(config["password"]),
         "token_set": bool(config["token"]),
+        "dashboard_url": config["dashboard_url"],
         "message_template": config["message_template"],
     }
 
@@ -1165,17 +1529,28 @@ def _clean_text(value: Any) -> str:
 
 def validate_message_template(template: str) -> None:
     if not template:
-        raise SettingsValidationError("Die ntfy-Nachricht darf nicht leer sein.")
+        raise SettingsValidationError(
+            localized_message(
+                "The ntfy message must not be empty.",
+                "Die ntfy-Nachricht darf nicht leer sein.",
+            )
+        )
     if len(template) > 1_000:
         raise SettingsValidationError(
-            "Die ntfy-Nachricht darf höchstens 1000 Zeichen enthalten."
+            localized_message(
+                "The ntfy message must not exceed 1000 characters.",
+                "Die ntfy-Nachricht darf höchstens 1000 Zeichen enthalten.",
+            )
         )
 
     try:
         parsed_parts = list(string.Formatter().parse(template))
     except ValueError as error:
         raise SettingsValidationError(
-            "Die ntfy-Nachricht enthält ungültige geschweifte Klammern."
+            localized_message(
+                "The ntfy message contains invalid braces.",
+                "Die ntfy-Nachricht enthält ungültige geschweifte Klammern.",
+            )
         ) from error
 
     parsed_fields = [
@@ -1189,12 +1564,18 @@ def validate_message_template(template: str) -> None:
         if field_name is not None
     ):
         raise SettingsValidationError(
-            "Formatangaben und Konvertierungen sind in Platzhaltern nicht erlaubt."
+            localized_message(
+                "Format specifications and conversions are not allowed in placeholders.",
+                "Formatangaben und Konvertierungen sind in Platzhaltern nicht erlaubt.",
+            )
         )
     unknown_fields = sorted(set(parsed_fields) - ALLOWED_TEMPLATE_FIELDS)
     if unknown_fields:
         raise SettingsValidationError(
-            "Unbekannte Platzhalter: " + ", ".join(unknown_fields)
+            localized_message(
+                "Unknown placeholders: ",
+                "Unbekannte Platzhalter: ",
+            ) + ", ".join(unknown_fields)
         )
 
 
@@ -1204,7 +1585,12 @@ def validate_ntfy_config(
     require_enabled: bool = True,
 ) -> dict[str, Any]:
     if not isinstance(raw_config, dict):
-        raise SettingsValidationError("Die ntfy-Einstellungen sind ungültig.")
+        raise SettingsValidationError(
+            localized_message(
+                "The ntfy settings are invalid.",
+                "Die ntfy-Einstellungen sind ungültig.",
+            )
+        )
 
     enabled = bool(raw_config.get("enabled"))
     domain = _clean_text(raw_config.get("domain"))
@@ -1213,10 +1599,20 @@ def validate_ntfy_config(
     username = _clean_text(raw_config.get("username"))
     password = _clean_text(raw_config.get("password")) or stored_config["password"]
     token = _clean_text(raw_config.get("token")) or stored_config["token"]
+    dashboard_url = (
+        _clean_text(raw_config.get("dashboard_url"))
+        if "dashboard_url" in raw_config
+        else _clean_text(stored_config.get("dashboard_url"))
+    )
     message_template = _clean_text(raw_config.get("message_template"))
 
     if auth_mode not in {"none", "basic", "token"}:
-        raise SettingsValidationError("Die ntfy-Authentifizierung ist ungültig.")
+        raise SettingsValidationError(
+            localized_message(
+                "The ntfy authentication mode is invalid.",
+                "Die ntfy-Authentifizierung ist ungültig.",
+            )
+        )
     validate_message_template(message_template)
 
     must_validate_connection = enabled if require_enabled else True
@@ -1224,23 +1620,43 @@ def validate_ntfy_config(
         parsed_domain = urlparse(domain)
         if parsed_domain.scheme not in {"http", "https"} or not parsed_domain.netloc:
             raise SettingsValidationError(
-                "Die ntfy-Domain muss eine vollständige HTTP- oder HTTPS-URL sein."
+                localized_message(
+                    "The ntfy server must be a complete HTTP or HTTPS URL.",
+                    "Die ntfy-Domain muss eine vollständige HTTP- oder HTTPS-URL sein.",
+                )
             )
         if parsed_domain.query or parsed_domain.fragment:
             raise SettingsValidationError(
-                "Die ntfy-Domain darf keine Query-Parameter oder Fragmente enthalten."
+                localized_message(
+                    "The ntfy server URL must not contain a query or fragment.",
+                    "Die ntfy-Domain darf keine Query-Parameter oder Fragmente enthalten.",
+                )
             )
         if not TOPIC_PATTERN.fullmatch(topic):
             raise SettingsValidationError(
-                "Das ntfy-Topic darf nur Buchstaben, Zahlen, _ und - enthalten."
+                localized_message(
+                    "The ntfy topic may only contain letters, numbers, _ and -.",
+                    "Das ntfy-Topic darf nur Buchstaben, Zahlen, _ und - enthalten.",
+                )
             )
+        _validate_http_url(
+            dashboard_url,
+            "The dashboard link",
+            "Der Dashboard-Link",
+        )
         if auth_mode == "basic" and (not username or not password):
             raise SettingsValidationError(
-                "Für Basic Auth werden Benutzername und Passwort benötigt."
+                localized_message(
+                    "Basic authentication requires a username and password.",
+                    "Für Basic Auth werden Benutzername und Passwort benötigt.",
+                )
             )
         if auth_mode == "token" and not token:
             raise SettingsValidationError(
-                "Für Token-Authentifizierung wird ein Zugriffstoken benötigt."
+                localized_message(
+                    "Token authentication requires an access token.",
+                    "Für Token-Authentifizierung wird ein Zugriffstoken benötigt.",
+                )
             )
 
     return {
@@ -1251,6 +1667,7 @@ def validate_ntfy_config(
         "username": username,
         "password": password,
         "token": token,
+        "dashboard_url": dashboard_url,
         "message_template": message_template,
     }
 
@@ -1258,21 +1675,44 @@ def validate_ntfy_config(
 def validate_targets(raw_targets: Any) -> list[dict[str, str]]:
     if not isinstance(raw_targets, list) or not raw_targets:
         raise SettingsValidationError(
-            "Wähle mindestens einen Servertyp und Standort aus."
+            localized_message(
+                "Select at least one server type and location.",
+                "Wähle mindestens einen Servertyp und Standort aus.",
+            )
         )
     if len(raw_targets) > 500:
-        raise SettingsValidationError("Es können höchstens 500 Ziele überwacht werden.")
+        raise SettingsValidationError(
+            localized_message(
+                "At most 500 targets can be monitored.",
+                "Es können höchstens 500 Ziele überwacht werden.",
+            )
+        )
 
     unique_targets: set[tuple[str, str]] = set()
     for raw_target in raw_targets:
         if not isinstance(raw_target, dict):
-            raise SettingsValidationError("Ein Überwachungsziel ist ungültig.")
+            raise SettingsValidationError(
+                localized_message(
+                    "A monitoring target is invalid.",
+                    "Ein Überwachungsziel ist ungültig.",
+                )
+            )
         server_type = _clean_text(raw_target.get("server_type")).lower()
         location = _clean_text(raw_target.get("location")).lower()
         if not TARGET_VALUE_PATTERN.fullmatch(server_type):
-            raise SettingsValidationError("Ein Servertyp ist ungültig.")
+            raise SettingsValidationError(
+                localized_message(
+                    "A server type is invalid.",
+                    "Ein Servertyp ist ungültig.",
+                )
+            )
         if not TARGET_VALUE_PATTERN.fullmatch(location):
-            raise SettingsValidationError("Ein Standort ist ungültig.")
+            raise SettingsValidationError(
+                localized_message(
+                    "A location is invalid.",
+                    "Ein Standort ist ungültig.",
+                )
+            )
         unique_targets.add((server_type, location))
 
     return [
@@ -1286,26 +1726,44 @@ def validate_poll_interval(value: Any) -> float:
         interval = float(value)
     except (TypeError, ValueError) as error:
         raise SettingsValidationError(
-            "Das Abfrageintervall muss eine Zahl sein."
+            localized_message(
+                "The check interval must be a number.",
+                "Das Abfrageintervall muss eine Zahl sein.",
+            )
         ) from error
     if not MIN_POLL_INTERVAL_SECONDS <= interval <= MAX_POLL_INTERVAL_SECONDS:
         raise SettingsValidationError(
-            "Das Abfrageintervall muss zwischen 10 und 86400 Sekunden liegen."
+            localized_message(
+                "The check interval must be between 10 and 86400 seconds.",
+                "Das Abfrageintervall muss zwischen 10 und 86400 Sekunden liegen.",
+            )
         )
     return interval
 
 
-def save_application_settings(payload: Any) -> dict[str, Any]:
+def save_application_settings(
+    payload: Any,
+    wake_monitor: bool = True,
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
-        raise SettingsValidationError("Die Einstellungen sind ungültig.")
+        raise SettingsValidationError(
+            localized_message(
+                "The settings are invalid.",
+                "Die Einstellungen sind ungültig.",
+            )
+        )
 
     interval = validate_poll_interval(payload.get("poll_interval_seconds"))
     targets = validate_targets(payload.get("monitored_targets"))
 
     with sqlite3.connect(DATABASE_PATH) as connection:
+        stored_general = load_general_config(connection)
+        general = validate_general_config(payload.get("general"), stored_general)
         stored_ntfy = load_ntfy_config(connection)
         ntfy = validate_ntfy_config(payload.get("ntfy"), stored_ntfy)
 
+        for key, value in general.items():
+            _save_setting(connection, key, str(value))
         _save_setting(connection, "poll_interval_seconds", f"{interval:g}")
         for key in (
             "enabled",
@@ -1315,6 +1773,7 @@ def save_application_settings(payload: Any) -> dict[str, Any]:
             "username",
             "password",
             "token",
+            "dashboard_url",
             "message_template",
         ):
             value = ntfy[key]
@@ -1335,8 +1794,10 @@ def save_application_settings(payload: Any) -> dict[str, Any]:
             ),
         )
 
-    WAKE_EVENT.set()
+    if wake_monitor:
+        WAKE_EVENT.set()
     return {
+        "general": public_general_config(general),
         "poll_interval_seconds": interval,
         "monitored_targets": targets,
         "ntfy": public_ntfy_config(ntfy),
@@ -1358,12 +1819,17 @@ def render_ntfy_message(
     except ValueError:
         displayed_checked_at = checked_at
 
+    language = str(config.get("language") or get_application_language())
     values = {
         "server_type": server_type.upper(),
         "location": location,
-        "status": "verfügbar",
+        "status": "verfügbar" if language == "de" else "available",
         "checked_at": displayed_checked_at,
-        "recommended": "ja" if recommended else "nein",
+        "recommended": (
+            "ja" if recommended else "nein"
+        ) if language == "de" else (
+            "yes" if recommended else "no"
+        ),
     }
     return str(config["message_template"]).format_map(values)
 
@@ -1388,6 +1854,7 @@ def publish_ntfy(
                 "title": title,
                 "message": message,
                 "tags": ["white_check_mark"],
+                "click": config["dashboard_url"],
             },
             headers=headers,
             auth=auth,
@@ -1395,18 +1862,27 @@ def publish_ntfy(
         )
     except requests.Timeout as error:
         raise NtfyError(
-            f"ntfy-Timeout nach {REQUEST_TIMEOUT_SECONDS:g} Sekunden."
+            localized_message(
+                f"ntfy timeout after {REQUEST_TIMEOUT_SECONDS:g} seconds.",
+                f"ntfy-Timeout nach {REQUEST_TIMEOUT_SECONDS:g} Sekunden.",
+            )
         ) from error
     except requests.RequestException as error:
         raise NtfyError(
-            f"ntfy ist nicht erreichbar ({type(error).__name__})."
+            localized_message(
+                f"ntfy is unreachable ({type(error).__name__}).",
+                f"ntfy ist nicht erreichbar ({type(error).__name__}).",
+            )
         ) from error
 
     try:
         response.raise_for_status()
     except requests.HTTPError as error:
         raise NtfyError(
-            f"ntfy antwortet mit HTTP {response.status_code}."
+            localized_message(
+                f"ntfy responded with HTTP {response.status_code}.",
+                f"ntfy antwortet mit HTTP {response.status_code}.",
+            )
         ) from error
 
 
@@ -1430,7 +1906,11 @@ def notify_available(
         )
         publish_ntfy(
             validated_config,
-            f"HetznerWatch: {server_type.upper()} verfügbar",
+            (
+                f"HetznerWatch: {server_type.upper()} verfügbar"
+                if get_application_language() == "de"
+                else f"HetznerWatch: {server_type.upper()} available"
+            ),
             message,
         )
         logging.info("ntfy-Nachricht für %s/%s gesendet.", server_type, location)
@@ -1444,7 +1924,7 @@ def add_response_headers(response: Any) -> Any:
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "connect-src 'self'; "
-        "img-src 'self' data:; "
+        "img-src 'self' data: http: https:; "
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'"
     )
@@ -1459,13 +1939,40 @@ def dashboard() -> Any:
     return send_file(INDEX_PATH)
 
 
+@WEB_APP.get("/api/health")
+def health_api() -> Any:
+    return jsonify({"status": "ok"})
+
+
+@WEB_APP.get("/api/app-config")
+def app_config_api() -> Any:
+    try:
+        general = load_general_config()
+    except (OSError, sqlite3.Error) as error:
+        logging.error("App configuration could not be loaded: %s", error)
+        return jsonify({"error": "The app configuration is unavailable."}), 503
+    return jsonify(
+        {
+            "general": public_general_config(general),
+            "setup_complete": bool(general["hcloud_token"]),
+        }
+    )
+
+
 @WEB_APP.get("/api/history")
 def history_api() -> Any:
     raw_limit = request.args.get("limit", "120")
     try:
         limit = int(raw_limit)
     except ValueError:
-        return jsonify({"error": "Der Parameter 'limit' muss eine Zahl sein."}), 400
+        return jsonify(
+            {
+                "error": localized_message(
+                    "The 'limit' parameter must be a number.",
+                    "Der Parameter 'limit' muss eine Zahl sein.",
+                )
+            }
+        ), 400
 
     limit = max(1, min(limit, 500))
 
@@ -1475,7 +1982,14 @@ def history_api() -> Any:
         monitoring_enabled = get_monitoring_enabled()
     except (OSError, sqlite3.Error) as error:
         logging.error("SQLite-Fehler beim Laden des Verlaufs: %s", error)
-        return jsonify({"error": "Der Verlauf ist derzeit nicht verfügbar."}), 503
+        return jsonify(
+            {
+                "error": localized_message(
+                    "History is currently unavailable.",
+                    "Der Verlauf ist derzeit nicht verfügbar.",
+                )
+            }
+        ), 503
 
     return jsonify(
         {
@@ -1491,14 +2005,26 @@ def history_api() -> Any:
 def long_term_api() -> Any:
     range_key = request.args.get("range", "7d")
     if range_key not in LONG_TERM_RANGES:
-        return jsonify({"error": "Der gewählte Zeitraum ist ungültig."}), 400
+        return jsonify(
+            {
+                "error": localized_message(
+                    "The selected range is invalid.",
+                    "Der gewählte Zeitraum ist ungültig.",
+                )
+            }
+        ), 400
 
     try:
         statistics = build_long_term_statistics(range_key)
     except (OSError, sqlite3.Error, ValueError) as error:
         logging.error("Langzeitstatistik konnte nicht geladen werden: %s", error)
         return jsonify(
-            {"error": "Die Langzeitstatistik ist derzeit nicht verfügbar."}
+            {
+                "error": localized_message(
+                    "Long-term statistics are currently unavailable.",
+                    "Die Langzeitstatistik ist derzeit nicht verfügbar.",
+                )
+            }
         ), 503
     return jsonify(statistics)
 
@@ -1507,6 +2033,7 @@ def long_term_api() -> Any:
 def settings_api() -> Any:
     try:
         with sqlite3.connect(DATABASE_PATH) as connection:
+            general = load_general_config(connection)
             monitoring_enabled = get_monitoring_enabled(connection)
             interval = float(_load_setting(connection, "poll_interval_seconds"))
             targets = load_monitored_targets(connection)
@@ -1514,7 +2041,14 @@ def settings_api() -> Any:
         catalog = load_cached_server_catalog()
     except (OSError, sqlite3.Error, ValueError) as error:
         logging.error("Einstellungen konnten nicht geladen werden: %s", error)
-        return jsonify({"error": "Die Einstellungen sind derzeit nicht verfügbar."}), 503
+        return jsonify(
+            {
+                "error": localized_message(
+                    "Settings are currently unavailable.",
+                    "Die Einstellungen sind derzeit nicht verfügbar.",
+                )
+            }
+        ), 503
 
     catalog_error = ""
     try:
@@ -1525,6 +2059,7 @@ def settings_api() -> Any:
 
     return jsonify(
         {
+            "general": public_general_config(general),
             "monitoring_enabled": monitoring_enabled,
             "poll_interval_seconds": interval,
             "monitored_targets": targets,
@@ -1542,14 +2077,62 @@ def settings_api() -> Any:
 
 @WEB_APP.put("/api/settings")
 def update_settings_api() -> Any:
+    payload = request.get_json(silent=True)
+    raw_general = payload.get("general") if isinstance(payload, dict) else None
+    run_initial_check = bool(
+        isinstance(payload, dict)
+        and payload.get("run_initial_check") is True
+        and isinstance(raw_general, dict)
+        and _clean_text(raw_general.get("hcloud_token"))
+    )
     try:
-        saved_settings = save_application_settings(request.get_json(silent=True))
+        saved_settings = save_application_settings(
+            payload,
+            wake_monitor=not run_initial_check,
+        )
     except SettingsValidationError as error:
         return jsonify({"error": str(error)}), 400
     except (OSError, sqlite3.Error) as error:
         logging.error("Einstellungen konnten nicht gespeichert werden: %s", error)
-        return jsonify({"error": "Die Einstellungen konnten nicht gespeichert werden."}), 503
-    return jsonify({"saved_at": utc_timestamp(), **saved_settings})
+        return jsonify(
+            {
+                "error": localized_message(
+                    "Settings could not be saved.",
+                    "Die Einstellungen konnten nicht gespeichert werden.",
+                )
+            }
+        ), 503
+    initial_check_error = ""
+    initial_check_attempted = False
+    refreshed_catalog: list[dict[str, Any]] | None = None
+    if run_initial_check:
+        try:
+            check_error = run_check()
+            initial_check_attempted = True
+            if isinstance(check_error, str):
+                initial_check_error = check_error
+            refreshed_catalog = load_cached_server_catalog()
+        except (OSError, sqlite3.Error, ValueError) as error:
+            logging.error("Erste Abfrage konnte nicht ausgeführt werden: %s", error)
+            initial_check_error = localized_message(
+                "The settings were saved, but the first check could not be completed.",
+                "Die Einstellungen wurden gespeichert, aber die erste Abfrage konnte nicht abgeschlossen werden.",
+            )
+        finally:
+            if initial_check_attempted:
+                INITIAL_CHECK_COMPLETED_EVENT.set()
+            WAKE_EVENT.set()
+
+    response_payload = {
+        "saved_at": utc_timestamp(),
+        "initial_check_completed": run_initial_check and not initial_check_error,
+        "initial_check_error": initial_check_error,
+        **saved_settings,
+    }
+    if refreshed_catalog is not None:
+        response_payload["server_catalog"] = refreshed_catalog
+        response_payload["catalog_error"] = initial_check_error
+    return jsonify(response_payload)
 
 
 @WEB_APP.post("/api/monitoring")
@@ -1557,7 +2140,14 @@ def update_monitoring_api() -> Any:
     payload = request.get_json(silent=True)
     enabled = payload.get("enabled") if isinstance(payload, dict) else None
     if not isinstance(enabled, bool):
-        return jsonify({"error": "Der Monitoring-Status ist ungültig."}), 400
+        return jsonify(
+            {
+                "error": localized_message(
+                    "The monitoring state is invalid.",
+                    "Der Monitoring-Status ist ungültig.",
+                )
+            }
+        ), 400
 
     try:
         with sqlite3.connect(DATABASE_PATH) as connection:
@@ -1568,7 +2158,14 @@ def update_monitoring_api() -> Any:
             )
     except (OSError, sqlite3.Error) as error:
         logging.error("Monitoring-Status konnte nicht gespeichert werden: %s", error)
-        return jsonify({"error": "Der Monitoring-Status konnte nicht gespeichert werden."}), 503
+        return jsonify(
+            {
+                "error": localized_message(
+                    "The monitoring state could not be saved.",
+                    "Der Monitoring-Status konnte nicht gespeichert werden.",
+                )
+            }
+        ), 503
 
     logging.info("Automatische Abfragen %s.", "aktiviert" if enabled else "pausiert")
     WAKE_EVENT.set()
@@ -1578,6 +2175,11 @@ def update_monitoring_api() -> Any:
             "updated_at": utc_timestamp(),
         }
     )
+
+
+@WEB_APP.post("/api/settings/ntfy-topic")
+def generate_ntfy_topic_api() -> Any:
+    return jsonify({"topic": generate_default_ntfy_topic()})
 
 
 @WEB_APP.post("/api/settings/ntfy-test")
@@ -1599,15 +2201,39 @@ def ntfy_test_api() -> Any:
             checked_at,
             True,
         )
-        publish_ntfy(config, "HetznerWatch: Testnachricht", message)
+        publish_ntfy(
+            config,
+            (
+                "HetznerWatch: Testnachricht"
+                if get_application_language() == "de"
+                else "HetznerWatch: test message"
+            ),
+            message,
+        )
     except SettingsValidationError as error:
         return jsonify({"error": str(error)}), 400
     except NtfyError as error:
         return jsonify({"error": str(error)}), 502
     except (OSError, sqlite3.Error) as error:
         logging.error("ntfy-Test konnte nicht vorbereitet werden: %s", error)
-        return jsonify({"error": "Der ntfy-Test konnte nicht vorbereitet werden."}), 503
-    return jsonify({"sent_at": checked_at, "message": "ntfy-Testnachricht gesendet."})
+        return jsonify(
+            {
+                "error": localized_message(
+                    "The ntfy test could not be prepared.",
+                    "Der ntfy-Test konnte nicht vorbereitet werden.",
+                )
+            }
+        ), 503
+    return jsonify(
+        {
+            "sent_at": checked_at,
+            "message": (
+                "ntfy-Testnachricht gesendet."
+                if get_application_language() == "de"
+                else "ntfy test message sent."
+            ),
+        }
+    )
 
 
 def _save_check_safely(
@@ -1642,12 +2268,20 @@ def _save_check_safely(
         return False
 
 
-def run_check() -> None:
+def run_check() -> str:
+    with CHECK_LOCK:
+        return _run_check_unlocked()
+
+
+def _run_check_unlocked() -> str:
     checked_at = utc_timestamp()
     targets = load_monitored_targets()
     if not targets:
         logging.warning("Keine Überwachungsziele konfiguriert.")
-        return
+        return localized_message(
+            "No monitoring targets are configured.",
+            "Keine Überwachungsziele konfiguriert.",
+        )
 
     try:
         response, http_status_code = fetch_server_types()
@@ -1667,7 +2301,7 @@ def run_check() -> None:
                 error.http_status_code,
                 error_message,
             )
-        return
+        return error_message
     except (OSError, sqlite3.Error, ValueError) as error:
         logging.error("Langzeitdaten konnten nicht gespeichert werden: %s", error)
         catalog = []
@@ -1716,6 +2350,8 @@ def run_check() -> None:
                     bool(recommended),
                 )
 
+    return ""
+
 
 def handle_shutdown(signum: int, _frame: Any) -> None:
     logging.info("Signal %s empfangen; Monitor wird beendet.", signum)
@@ -1746,6 +2382,17 @@ def monitor_loop() -> None:
             WAKE_EVENT.clear()
             continue
 
+        if not get_hcloud_token():
+            WAKE_EVENT.wait(min(3_600, RETENTION_CLEANUP_INTERVAL_SECONDS))
+            WAKE_EVENT.clear()
+            continue
+
+        if INITIAL_CHECK_COMPLETED_EVENT.is_set():
+            INITIAL_CHECK_COMPLETED_EVENT.clear()
+            WAKE_EVENT.wait(get_poll_interval_seconds())
+            WAKE_EVENT.clear()
+            continue
+
         try:
             run_check()
         except Exception as error:
@@ -1763,6 +2410,7 @@ def main() -> None:
     load_configuration()
     STOP_EVENT.clear()
     WAKE_EVENT.clear()
+    INITIAL_CHECK_COMPLETED_EVENT.clear()
 
     signal.signal(signal.SIGTERM, handle_shutdown)
     signal.signal(signal.SIGINT, handle_shutdown)

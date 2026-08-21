@@ -8,7 +8,6 @@ __pycache__/
 /AGENTS.md
 .DS_Store
 .env.*
-!.env.example
 *.pem
 *.key
 .secrets/

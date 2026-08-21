@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>HetznerWatch – Server-Verfügbarkeit</title>
+  <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml" sizes="any">
+  <title>HetznerWatch – Server availability</title>
   <script>
     try {
       const storedTheme = localStorage.getItem("hetznerWatchTheme");
@@ -170,6 +171,7 @@
     }
 
     .heisel-logo-on-dark { display: none; }
+    .custom-logo-image { display: block; }
     :root[data-theme="dark"] .heisel-logo-on-light { display: none; }
     :root[data-theme="dark"] .heisel-logo-on-dark { display: block; }
 
@@ -249,6 +251,7 @@
     .select-input:focus-visible,
     .textarea-input:focus-visible,
     .placeholder-button:focus-visible,
+    .info-button:focus-visible,
     input[type="checkbox"]:focus-visible {
       outline: 3px solid color-mix(in srgb, var(--ring) 60%, transparent);
       outline-offset: 2px;
@@ -470,6 +473,41 @@
       background: var(--card);
     }
 
+    .api-access-panel { border-left: 4px solid var(--highlight); }
+    .api-access-panel.is-configured { border-left-color: var(--success); }
+
+    .settings-panel-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 24px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .settings-panel-status::before {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 50%;
+      background: var(--status-neutral);
+      content: "";
+    }
+
+    .settings-panel-status.is-configured {
+      color: var(--muted-foreground);
+    }
+
+    .settings-panel-status.is-configured::before { background: var(--success); }
+
+    .settings-panel-status.is-required {
+      color: var(--foreground);
+    }
+
+    .settings-panel-status.is-required::before { background: var(--highlight); }
+
     .target-header {
       display: grid;
       grid-template-columns: minmax(220px, .65fr) minmax(320px, 1fr);
@@ -622,8 +660,14 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .settings-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 16px;
       margin-bottom: 16px;
     }
+
+    .settings-heading-copy { min-width: 0; }
 
     .settings-heading .section-intro { max-width: none; }
 
@@ -632,6 +676,46 @@
       font-size: 24px;
       font-weight: 600;
     }
+
+    .autosave-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      min-height: 24px;
+      max-width: min(420px, 42vw);
+      padding: 0 6px;
+      border-radius: var(--radius-control);
+      color: var(--muted-foreground);
+      font-size: 12px;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .autosave-indicator {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
+      border-radius: 50%;
+      background: var(--status-neutral);
+    }
+
+    .autosave-status.pending .autosave-indicator { background: var(--highlight); }
+
+    .autosave-status.saving .autosave-indicator {
+      width: 12px;
+      height: 12px;
+      flex-basis: 12px;
+      border: 2px solid var(--border-strong);
+      border-top-color: var(--foreground);
+      background: transparent;
+      animation: spin .8s linear infinite;
+    }
+
+    .autosave-status.success { color: var(--success); }
+    .autosave-status.success .autosave-indicator { background: var(--success); }
+    .autosave-status.error { color: var(--danger); }
+    .autosave-status.error .autosave-indicator { background: var(--danger); }
 
     .settings-form {
       display: grid;
@@ -681,6 +765,273 @@
 
     .form-field.full { grid-column: 1 / -1; }
     .field-label { color: var(--foreground); letter-spacing: 0; text-transform: none; }
+
+    .field-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .credential-input-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .credential-input-shell {
+      position: relative;
+      min-width: 0;
+    }
+
+    .credential-input-shell .text-input { width: 100%; }
+
+    .credential-input-shell.is-configured .text-input {
+      padding-right: 42px;
+      border-color: color-mix(in srgb, var(--success) 48%, var(--border));
+      background: color-mix(in srgb, var(--success) 7%, var(--card));
+    }
+
+    .credential-input-shell.is-configured .text-input::placeholder {
+      color: var(--foreground);
+      opacity: 1;
+      letter-spacing: .16em;
+    }
+
+    .credential-check {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      width: 18px;
+      height: 18px;
+      color: var(--success);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .credential-state {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--highlight);
+      border-radius: 0 var(--radius-control) var(--radius-control) 0;
+      color: var(--muted-foreground);
+      background: var(--secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .credential-state .ui-icon { margin-top: 1px; }
+
+    .credential-state.is-configured {
+      border-left-color: var(--success);
+      color: var(--foreground);
+      background: var(--success-soft);
+    }
+
+    .credential-state.is-configured .ui-icon { color: var(--success); }
+    .credential-state.is-replacing { border-left-color: var(--highlight); }
+
+    .info-button {
+      display: inline-grid;
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-control);
+      color: var(--muted-foreground);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .info-button .ui-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .info-button:hover,
+    .info-button[aria-expanded="true"] {
+      color: var(--foreground);
+      background: var(--hover);
+    }
+
+    .field-help {
+      padding: 9px 10px;
+      border-left: 3px solid var(--highlight);
+      border-radius: 0 var(--radius-control) var(--radius-control) 0;
+      color: var(--muted-foreground);
+      background: var(--secondary);
+      font-size: 12px;
+    }
+
+    .field-help a {
+      color: inherit;
+      font-weight: 600;
+      text-underline-offset: 3px;
+    }
+
+    .setup-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border: 1px solid color-mix(in srgb, var(--highlight) 55%, var(--border));
+      border-radius: var(--radius-card);
+      background: color-mix(in srgb, var(--highlight) 10%, var(--card));
+    }
+
+    .setup-banner strong { display: block; }
+    .setup-banner span { color: var(--muted-foreground); font-size: 13px; }
+
+    .documentation {
+      width: 100%;
+      max-width: 1120px;
+    }
+
+    .documentation-toc {
+      margin-bottom: 32px;
+      padding: 16px 0 16px 24px;
+      border-left: 4px solid var(--highlight);
+    }
+
+    .documentation-toc strong { display: block; margin-bottom: 8px; }
+    .documentation-toc ol { margin: 0; padding-left: 24px; }
+    .documentation-toc li + li { margin-top: 4px; }
+
+    .documentation a {
+      color: var(--foreground);
+      font-weight: 600;
+      text-underline-offset: 3px;
+    }
+
+    .documentation-section {
+      padding: 0 0 32px;
+      border-bottom: 1px solid var(--border);
+      scroll-margin-top: 16px;
+    }
+
+    .documentation-section + .documentation-section { padding-top: 32px; }
+    .documentation-section:last-child { border-bottom: 0; }
+
+    .documentation-section h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .documentation-section h4 {
+      margin: 24px 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .documentation-section p { margin: 0; line-height: 1.7; }
+    .documentation-section p + p { margin-top: 12px; }
+    .documentation-section ol,
+    .documentation-section ul { margin: 16px 0 0; padding-left: 24px; }
+    .documentation-section li { line-height: 1.7; }
+    .documentation-section li + li { margin-top: 8px; }
+
+    .documentation code {
+      padding: 2px 4px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--secondary);
+      font-family: var(--font-code);
+      font-size: .92em;
+    }
+
+    .documentation-note,
+    .documentation-example {
+      margin-top: 16px;
+      padding: 16px;
+      border-left: 4px solid var(--highlight);
+      background: var(--secondary);
+    }
+
+    .documentation-example-title {
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .example-box-strip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 40px;
+    }
+
+    .example-check {
+      width: 16px;
+      height: 32px;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      background: var(--status-neutral);
+    }
+
+    .example-check.available { border-color: var(--success); background: var(--success); }
+    .example-check.unavailable { border-color: var(--danger); background: var(--danger); }
+    .example-check.recommended { border: 2px solid var(--highlight); }
+
+    .example-axis,
+    .example-chart-axis {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted-foreground);
+      font-family: var(--font-code);
+      font-size: 12px;
+    }
+
+    .example-availability-chart {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(12px, 1fr));
+      align-items: end;
+      gap: 8px;
+      height: 96px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    .example-metric-line {
+      height: 64px;
+      margin-top: 8px;
+    }
+
+    .example-metric-line svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .example-availability-bar {
+      height: var(--availability);
+      min-height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--success);
+    }
+
+    .example-availability-bar.is-zero { height: 3px; background: var(--danger); }
+    .example-availability-bar.is-empty { height: 3px; background: var(--status-neutral); }
+
+    .documentation-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 12px;
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
 
     .text-input,
     .select-input {
@@ -858,6 +1209,54 @@
 
     .placeholder-button:hover { background: var(--hover); }
 
+    .input-action-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .button.is-confirming {
+      border-color: color-mix(in srgb, var(--highlight) 65%, var(--border));
+      background: color-mix(in srgb, var(--highlight) 12%, var(--secondary));
+    }
+
+    .ntfy-quickstart {
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ntfy-quickstart h4 {
+      margin: 0 0 8px;
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .ntfy-quickstart ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .ntfy-quickstart li + li { margin-top: 4px; }
+
+    .ntfy-quickstart p {
+      margin: 8px 0 0;
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+
+    .ntfy-quickstart a {
+      color: inherit;
+      font-weight: 600;
+      text-underline-offset: 3px;
+    }
+
     .message-preview {
       min-height: 44px;
       padding: 12px;
@@ -875,6 +1274,12 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-card);
       background: var(--sidebar);
+    }
+
+    .ntfy-test-actions {
+      margin: 0 -16px -16px;
+      border-width: 1px 0 0;
+      border-radius: 0;
     }
 
     .form-status {
@@ -1173,7 +1578,17 @@
 
       .page-tab { gap: 4px; padding: 0 6px; }
       .page-tab .ui-icon { display: none; }
+      .info-button { width: 40px; height: 40px; flex-basis: 40px; }
       .nav-connection { gap: 6px; padding: 0 4px; font-size: 11px; }
+      .nav-connection #connectionLabel {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
 
       .dashboard-toolbar > * { flex: 1 1 100%; min-width: 0; }
       .long-term-heading { align-items: stretch; flex-direction: column; gap: 12px; }
@@ -1195,16 +1610,23 @@
       .check-box { width: 14px; flex-basis: 14px; }
       .form-grid { grid-template-columns: 1fr; }
       .form-field.full { grid-column: auto; }
+      .input-action-row { grid-template-columns: 1fr; }
+      .credential-input-row { grid-template-columns: 1fr; }
+      .input-action-buttons > .button { flex: 1 1 0; }
+      .settings-heading { grid-template-columns: 1fr; gap: 8px; }
+      .autosave-status { justify-self: start; max-width: 100%; text-align: left; }
       .panel-header { flex-direction: column; }
       .catalog-toolbar { align-items: flex-start; flex-direction: column; }
       .server-category-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
       .server-category-grid { grid-template-columns: 1fr; }
       .form-actions > .button { flex: 1 1 100%; }
+      .setup-banner { align-items: stretch; flex-direction: column; }
     }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
       .spinner,
+      .autosave-status.saving .autosave-indicator,
       .button.is-loading .ui-icon { animation: none; }
     }
   </style>
@@ -1218,10 +1640,11 @@
       <div class="heisel-logo">
         <img class="heisel-logo-image heisel-logo-on-light" src="/static/heisel-analytics-logo-light.png" alt="Heisel Analytics">
         <img class="heisel-logo-image heisel-logo-on-dark" src="/static/heisel-analytics-logo-dark.png" alt="Heisel Analytics">
+        <img class="heisel-logo-image custom-logo-image" id="customLogo" alt="Custom logo" referrerpolicy="no-referrer" hidden>
       </div>
     </header>
 
-    <nav class="page-tabs" aria-label="Hauptnavigation">
+    <nav class="page-tabs" aria-label="Main navigation" data-i18n-aria="nav.main">
       <div class="page-tab-list" role="tablist">
         <button class="page-tab is-active" id="dashboardTab" type="button" role="tab" data-page-target="dashboard" aria-controls="dashboardPage" aria-selected="true" tabindex="0">
           <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
@@ -1239,35 +1662,57 @@
             <path d="M13 17V9"></path>
             <path d="M18 17V5"></path>
           </svg>
-          <span>Langzeit</span>
+          <span data-i18n="nav.longTerm">Long-term</span>
+        </button>
+        <button class="page-tab" id="monitoringTab" type="button" role="tab" data-page-target="monitoring" aria-controls="monitoringPage" aria-selected="false" tabindex="-1">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <rect width="20" height="8" x="2" y="3" rx="2"></rect>
+            <rect width="20" height="8" x="2" y="13" rx="2"></rect>
+            <path d="M6 7h.01M6 17h.01"></path>
+          </svg>
+          <span data-i18n="nav.monitoring">Monitoring</span>
         </button>
         <button class="page-tab" id="settingsTab" type="button" role="tab" data-page-target="settings" aria-controls="settingsPage" aria-selected="false" tabindex="-1">
           <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
             <path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.2a2 2 0 0 1-2 0l-.1-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.1.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.1.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.1-.1a2 2 0 0 1 2 0l.4.2a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.2a2 2 0 0 1 2 0l.1.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.1-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.1-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.1.1a2 2 0 0 1-2 0l-.4-.2a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"></path>
             <circle cx="12" cy="12" r="3"></circle>
           </svg>
-          <span>Einstellungen</span>
+          <span data-i18n="nav.settings">Settings</span>
+        </button>
+        <button class="page-tab" id="instructionsTab" type="button" role="tab" data-page-target="instructions" aria-controls="instructionsPage" aria-selected="false" tabindex="-1">
+          <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span data-i18n="nav.instructions">Instructions</span>
         </button>
       </div>
       <div class="nav-connection" role="status" aria-live="polite">
         <span class="live-dot" id="connectionDot"></span>
-        <span id="connectionLabel">Verbinde …</span>
+        <span id="connectionLabel" data-i18n="connection.connecting">Connecting …</span>
       </div>
     </nav>
 
     <section class="page-view is-active" id="dashboardPage" role="tabpanel" aria-labelledby="dashboardTab" data-page="dashboard">
-      <div class="dashboard-toolbar" aria-label="Dashboard-Werkzeuge">
+      <div class="setup-banner" id="setupBanner" hidden>
+        <div>
+          <strong data-i18n="setup.title">Finish the initial setup</strong>
+          <span data-i18n="setup.copy">Add a read-only Hetzner Cloud API token before monitoring can start.</span>
+        </div>
+        <button class="button primary" type="button" data-open-settings data-i18n="setup.button">Open settings</button>
+      </div>
+      <div class="dashboard-toolbar" aria-label="Dashboard tools" data-i18n-aria="dashboard.tools">
         <label class="select-wrap">
           <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
             <path d="M3 3v5h5"></path>
             <path d="M3.1 13a9 9 0 1 0 2.1-5.9L3 8"></path>
           </svg>
-          <span>Verlauf</span>
-          <select id="historyLimit" aria-label="Anzahl sichtbarer Abfragen">
-            <option value="60">60 Abfragen</option>
-            <option value="120" selected>120 Abfragen</option>
-            <option value="240">240 Abfragen</option>
-            <option value="500">500 Abfragen</option>
+          <span data-i18n="dashboard.history">History</span>
+          <select id="historyLimit" aria-label="Visible checks" data-i18n-aria="dashboard.visibleChecks">
+            <option value="60" data-i18n="dashboard.checks60">60 checks</option>
+            <option value="120" selected data-i18n="dashboard.checks120">120 checks</option>
+            <option value="240" data-i18n="dashboard.checks240">240 checks</option>
+            <option value="500" data-i18n="dashboard.checks500">500 checks</option>
           </select>
         </label>
         <button class="button" id="monitoringToggle" type="button" aria-pressed="true">
@@ -1275,49 +1720,49 @@
             <path d="M12 2v10"></path>
             <path d="M18.4 6.6a9 9 0 1 1-12.8 0"></path>
           </svg>
-          <span>Abfragen pausieren</span>
+          <span data-i18n="monitor.pause">Pause checks</span>
         </button>
         <button class="button" id="refreshButton" type="button">
           <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
             <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path>
             <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path>
           </svg>
-          <span>Aktualisieren</span>
+          <span data-i18n="common.refresh">Refresh</span>
         </button>
         <button class="button" id="themeButton" type="button" aria-pressed="false">
           <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
             <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"></path>
           </svg>
-          <span>Dunkelmodus</span>
+          <span data-i18n="theme.dark">Dark mode</span>
         </button>
       </div>
 
       <section class="metrics" aria-label="Zusammenfassung">
         <div class="metric">
-          <div class="metric-label">Überwachte Ziele</div>
+          <div class="metric-label" data-i18n="dashboard.targets">Monitored targets</div>
           <div class="metric-value" id="targetCount">–</div>
         </div>
         <div class="metric">
-          <div class="metric-label">Abfrageintervall</div>
+          <div class="metric-label" data-i18n="dashboard.interval">Check interval</div>
           <div class="metric-value" id="pollInterval">–</div>
         </div>
         <div class="metric">
-          <div class="metric-label">Letzte Abfrage</div>
-          <div class="metric-value" id="lastChecked">Noch keine Daten</div>
+          <div class="metric-label" data-i18n="dashboard.lastCheck">Last check</div>
+          <div class="metric-value" id="lastChecked" data-i18n="status.noData">No data yet</div>
         </div>
       </section>
 
       <div class="legend" aria-label="Legende">
-        <span class="legend-item"><span class="legend-swatch available"></span>Verfügbar</span>
-        <span class="legend-item"><span class="legend-swatch unavailable"></span>Nicht verfügbar</span>
-        <span class="legend-item"><span class="legend-swatch"></span>Fehler</span>
-        <span class="legend-item"><span class="legend-swatch recommended"></span>Empfohlen</span>
+        <span class="legend-item"><span class="legend-swatch available"></span><span data-i18n="status.available">Available</span></span>
+        <span class="legend-item"><span class="legend-swatch unavailable"></span><span data-i18n="status.unavailable">Unavailable</span></span>
+        <span class="legend-item"><span class="legend-swatch"></span><span data-i18n="status.error">Error</span></span>
+        <span class="legend-item"><span class="legend-swatch recommended"></span><span data-i18n="status.recommended">Recommended</span></span>
       </div>
 
       <section class="targets" id="targetList" aria-live="polite" aria-busy="true">
         <div class="empty">
           <span class="spinner" aria-hidden="true"></span>
-          <span>Verlauf wird geladen …</span>
+          <span data-i18n="dashboard.loading">Loading history …</span>
         </div>
       </section>
 
@@ -1326,17 +1771,17 @@
     <section class="page-view" id="longTermPage" role="tabpanel" aria-labelledby="longTermTab" data-page="long-term" hidden>
       <div class="long-term-heading">
         <div>
-          <h2>Langzeitüberwachung</h2>
-          <p>Historische Verfügbarkeit aller Servertypen und Standorte aus den erfolgreichen Gesamtabfragen. Die Werte helfen bei der Einschätzung, sind aber keine Verfügbarkeitsprognose.</p>
+          <h2 data-i18n="long.title">Long-term monitoring</h2>
+          <p data-i18n="long.copy">Historical availability for all server types and locations based on successful catalog checks. These values are an observation, not an availability forecast.</p>
         </div>
         <div class="long-term-toolbar" aria-label="Langzeit-Werkzeuge">
           <label class="long-term-range">
-            <span class="field-label">Zeitraum</span>
+            <span class="field-label" data-i18n="long.range">Range</span>
             <select class="select-input" id="longTermRange">
-              <option value="24h">24 Stunden</option>
-              <option value="7d" selected>7 Tage</option>
-              <option value="30d">30 Tage</option>
-              <option value="90d">90 Tage</option>
+              <option value="24h" data-i18n="range.24h">24 hours</option>
+              <option value="7d" selected data-i18n="range.7d">7 days</option>
+              <option value="30d" data-i18n="range.30d">30 days</option>
+              <option value="90d" data-i18n="range.90d">90 days</option>
             </select>
           </label>
           <button class="button" id="refreshLongTerm" type="button">
@@ -1344,29 +1789,29 @@
               <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path>
               <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path>
             </svg>
-            <span>Aktualisieren</span>
+            <span data-i18n="common.refresh">Refresh</span>
           </button>
         </div>
       </div>
 
       <section class="metrics long-term-metrics" aria-label="Langzeit-Zusammenfassung">
         <div class="metric">
-          <div class="metric-label">Server &amp; Standorte</div>
+          <div class="metric-label" data-i18n="long.serversLocations">Servers &amp; locations</div>
           <div class="metric-value" id="longTermTargetCount">–</div>
           <div class="metric-graphic" id="longTermTargetGraphic" aria-hidden="true"></div>
         </div>
         <div class="metric">
-          <div class="metric-label">Datenabdeckung</div>
+          <div class="metric-label" data-i18n="long.coverage">Data coverage</div>
           <div class="metric-value" id="longTermDataCount">–</div>
           <div class="metric-graphic" id="longTermDataGraphic" aria-hidden="true"></div>
         </div>
         <div class="metric">
-          <div class="metric-label">Historisch verfügbar</div>
+          <div class="metric-label" data-i18n="long.historical">Historically available</div>
           <div class="metric-value" id="longTermAvailability">–</div>
           <div class="metric-graphic is-availability" id="longTermAvailabilityGraphic" aria-hidden="true"></div>
         </div>
         <div class="metric">
-          <div class="metric-label">Aktuell verfügbar</div>
+          <div class="metric-label" data-i18n="long.current">Currently available</div>
           <div class="metric-value" id="longTermCurrentCount">–</div>
           <div class="metric-graphic is-availability" id="longTermCurrentGraphic" aria-hidden="true"></div>
         </div>
@@ -1376,59 +1821,153 @@
       <section class="long-term-catalog" id="longTermCatalog" aria-live="polite" aria-busy="true">
         <div class="empty">
           <span class="spinner" aria-hidden="true"></span>
-          <span>Langzeitdaten werden geladen …</span>
+          <span data-i18n="long.loading">Loading long-term data …</span>
         </div>
       </section>
     </section>
 
-    <section class="page-view" id="settingsPage" role="tabpanel" aria-labelledby="settingsTab" data-page="settings" hidden>
+    <section class="page-view" id="monitoringPage" role="tabpanel" aria-labelledby="monitoringTab" data-page="monitoring" hidden>
       <div class="settings-heading">
-        <h2>Einstellungen</h2>
-        <p class="section-intro">
-          Lege fest, welche Servertypen überwacht werden, wie häufig HetznerWatch
-          prüft und wohin Verfügbarkeitsmeldungen gesendet werden.
-        </p>
+        <div class="settings-heading-copy">
+          <h2 data-i18n="monitoring.title">Monitoring</h2>
+          <p class="section-intro" data-i18n="monitoring.pageCopy">Choose how often HetznerWatch checks availability and which server/location combinations belong on the dashboard.</p>
+        </div>
+        <div class="autosave-status" id="monitoringStatus" role="status" aria-live="polite">
+          <span class="autosave-indicator" aria-hidden="true"></span>
+          <span data-autosave-label></span>
+        </div>
       </div>
 
-      <form class="settings-form" id="settingsForm">
+      <form class="settings-form" id="monitoringForm">
         <section class="settings-panel" aria-labelledby="monitoringTitle">
           <div class="panel-header">
             <div>
-              <h3 id="monitoringTitle">Überwachung</h3>
-              <p>Intervall und alle Kombinationen aus Hetzner-Servertyp und Standort.</p>
+              <h3 id="monitoringTitle" data-i18n="monitoring.targetsTitle">Targets and interval</h3>
+              <p data-i18n="monitoring.copy">Choose the interval and every server type/location combination to monitor.</p>
             </div>
           </div>
           <div class="panel-body">
             <div class="form-grid">
-              <label class="form-field">
-                <span class="field-label">Abfrageintervall in Sekunden</span>
-                <input class="text-input" id="pollIntervalInput" name="poll_interval_seconds" type="number" min="10" max="86400" step="1" inputmode="numeric" required aria-describedby="pollIntervalHelp">
-                <span class="helper-text" id="pollIntervalHelp">Zulässig sind 10 bis 86400 Sekunden.</span>
-              </label>
+              <div class="form-field">
+                <div class="field-heading">
+                  <label class="field-label" for="pollIntervalInput" data-i18n="monitoring.interval">Check interval in seconds</label>
+                  <button class="info-button" type="button" data-help-target="pollIntervalHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+                </div>
+                <input class="text-input" id="pollIntervalInput" name="poll_interval_seconds" type="number" min="10" max="86400" step="1" inputmode="numeric" required>
+                <div class="field-help" id="pollIntervalHelp" hidden data-i18n="monitoring.intervalHelp">Allowed range: 10 to 86400 seconds. A moderate interval reduces API traffic.</div>
+              </div>
             </div>
 
             <div class="catalog-toolbar">
               <div>
-                <strong id="selectedTargetCount">0 Ziele ausgewählt</strong>
+                <strong id="selectedTargetCount">0 targets selected</strong>
                 <div class="catalog-status" id="catalogStatus" role="status"></div>
               </div>
               <div class="catalog-toolbar-actions">
-                <button class="button" id="selectAllTargets" type="button">Alle auswählen</button>
-                <button class="button" id="clearAllTargets" type="button">Auswahl leeren</button>
+                <button class="info-button" type="button" data-help-target="targetsHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+                <button class="button" id="selectAllTargets" type="button" data-i18n="monitoring.selectAll">Select all</button>
+                <button class="button" id="clearAllTargets" type="button" data-i18n="monitoring.clear">Clear selection</button>
                 <button class="button" id="reloadCatalog" type="button">
                   <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
                     <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path>
                     <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path>
                   </svg>
-                  <span>Katalog neu laden</span>
+                  <span data-i18n="monitoring.reload">Reload catalog</span>
                 </button>
               </div>
             </div>
+            <div class="field-help" id="targetsHelp" hidden data-i18n="monitoring.targetsHelp">Each selected checkbox creates one monitored server type/location target. The live catalog needs a valid Hetzner token.</div>
 
             <div class="server-catalog" id="serverCatalog" aria-live="polite" aria-busy="true">
               <div class="empty">
                 <span class="spinner" aria-hidden="true"></span>
-                <span>Hetzner-Serverkatalog wird geladen …</span>
+                <span data-i18n="monitoring.loading">Loading the Hetzner server catalog …</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </form>
+    </section>
+
+    <section class="page-view" id="settingsPage" role="tabpanel" aria-labelledby="settingsTab" data-page="settings" hidden>
+      <div class="settings-heading">
+        <div class="settings-heading-copy">
+          <h2 data-i18n="settings.title">Settings</h2>
+          <p class="section-intro" data-i18n="settings.copy">Configure API access, language, branding and notifications. Monitoring targets have their own tab.</p>
+        </div>
+        <div class="autosave-status" id="settingsStatus" role="status" aria-live="polite">
+          <span class="autosave-indicator" aria-hidden="true"></span>
+          <span data-autosave-label></span>
+        </div>
+      </div>
+
+      <form class="settings-form" id="settingsForm">
+        <section class="settings-panel api-access-panel" id="apiAccessPanel" aria-labelledby="apiAccessTitle">
+          <div class="panel-header">
+            <div>
+              <h3 id="apiAccessTitle" data-i18n="api.title">Hetzner Cloud API token</h3>
+              <p data-i18n="api.copy">Required for the live server catalog and availability checks. Read permission is sufficient.</p>
+            </div>
+            <span class="settings-panel-status is-required" id="hcloudTokenBadge" role="status" aria-live="polite">Required</span>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="form-field full">
+                <div class="field-heading">
+                  <label class="field-label" for="hcloudToken" data-i18n="general.token">Hetzner Cloud API token</label>
+                  <button class="info-button" type="button" data-help-target="hcloudTokenHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+                </div>
+                <div class="credential-input-row">
+                  <div class="credential-input-shell" id="hcloudTokenShell">
+                    <input class="text-input" id="hcloudToken" type="password" autocomplete="off" placeholder="Paste a read-only token" aria-describedby="hcloudTokenState">
+                    <svg class="ui-icon credential-check" id="hcloudTokenCheck" aria-hidden="true" viewBox="0 0 24 24" hidden><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="m9 11 3 3L22 4"></path></svg>
+                  </div>
+                  <button class="button" id="replaceHcloudToken" type="button" hidden>
+                    <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20 7h-9"></path><path d="M14 17H5"></path><circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle></svg>
+                    <span data-i18n="general.replaceToken">Replace token</span>
+                  </button>
+                </div>
+                <div class="field-help" id="hcloudTokenHelp" hidden>
+                  <span data-i18n="general.tokenHelp">In Hetzner Cloud Console, open your project, then Security → API Tokens → Generate API Token. Read permission is sufficient. Copy it immediately; Hetzner only shows it once.</span>
+                  <a href="https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/" target="_blank" rel="noreferrer" data-hetzner-doc data-i18n="common.officialDocs">Official documentation</a>
+                </div>
+                <div class="credential-state" id="hcloudTokenState" role="status" aria-live="polite">
+                  <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                  <span id="hcloudTokenStateText"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-panel" aria-labelledby="generalTitle">
+          <div class="panel-header">
+            <div>
+              <h3 id="generalTitle" data-i18n="general.title">General</h3>
+              <p data-i18n="general.copy">Interface language and branding.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="form-field">
+                <div class="field-heading">
+                  <label class="field-label" for="languageInput" data-i18n="general.language">Language</label>
+                  <button class="info-button" type="button" data-help-target="languageHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+                </div>
+                <select class="select-input" id="languageInput">
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                </select>
+                <div class="field-help" id="languageHelp" hidden data-i18n="general.languageHelp">English is the default. The selected language is stored for this installation.</div>
+              </div>
+              <div class="form-field">
+                <div class="field-heading">
+                  <label class="field-label" for="customLogoUrl" data-i18n="general.logo">Custom logo URL</label>
+                  <button class="info-button" type="button" data-help-target="customLogoHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+                </div>
+                <input class="text-input" id="customLogoUrl" type="url" placeholder="https://example.com/logo.svg" autocomplete="url">
+                <div class="field-help" id="customLogoHelp" hidden data-i18n="general.logoHelp">Leave this empty to keep the Heisel Analytics logo. Use a directly reachable HTTP or HTTPS image URL. Loading an external image shares the viewer's IP address with its host.</div>
               </div>
             </div>
           </div>
@@ -1437,92 +1976,871 @@
         <section class="settings-panel" aria-labelledby="ntfyTitle">
           <div class="panel-header">
             <div>
-              <h3 id="ntfyTitle">ntfy-Benachrichtigungen</h3>
-              <p>Eine Nachricht wird gesendet, wenn ein zuvor nicht verfügbares Ziel wieder verfügbar ist.</p>
+              <h3 id="ntfyTitle" data-i18n="ntfy.title">ntfy notifications</h3>
+              <p data-i18n="ntfy.copy">A message is sent when a previously unavailable target becomes available.</p>
             </div>
-            <label class="toggle-row">
-              <input id="ntfyEnabled" type="checkbox">
-              <span class="toggle-copy">
-                <strong>ntfy aktiv</strong>
-                <span>Automatische Meldungen senden</span>
-              </span>
-            </label>
+            <div class="field-heading">
+              <label class="toggle-row">
+                <input id="ntfyEnabled" type="checkbox">
+                <span class="toggle-copy">
+                  <strong data-i18n="ntfy.enabled">Enable ntfy</strong>
+                  <span data-i18n="ntfy.enabledCopy">Send automatic notifications</span>
+                </span>
+              </label>
+              <button class="info-button" type="button" data-help-target="ntfyEnabledHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button>
+            </div>
           </div>
           <div class="panel-body">
+            <section class="ntfy-quickstart" aria-labelledby="ntfyPhoneTitle">
+              <h4 id="ntfyPhoneTitle" data-i18n="ntfy.phoneTitle">Set up your smartphone</h4>
+              <ol>
+                <li data-i18n="ntfy.phone1">Install the ntfy app for Android or iPhone.</li>
+                <li data-i18n="ntfy.phone2">In the app, add a topic on the public server https://ntfy.sh.</li>
+                <li data-i18n="ntfy.phone3">Copy the generated Topic shown below and subscribe to exactly that value.</li>
+                <li data-i18n="ntfy.phone4">Enable ntfy here and send a test message.</li>
+              </ol>
+              <p>
+                <span data-i18n="ntfy.phoneNote">The public server needs no account. Treat the random topic like a password and do not share it.</span>
+                <a href="https://docs.ntfy.sh/subscribe/phone/" target="_blank" rel="noreferrer" data-i18n="ntfy.phoneDocs">Smartphone guide</a>
+              </p>
+            </section>
+            <div class="field-help" id="ntfyEnabledHelp" hidden>
+              <span data-i18n="ntfy.shortHelp">Install an ntfy app, subscribe to a hard-to-guess topic, then enter the same server and topic here.</span>
+              <a href="https://docs.ntfy.sh/" target="_blank" rel="noreferrer" data-i18n="common.ntfyDocs">ntfy documentation</a>
+            </div>
             <div class="form-grid">
-              <label class="form-field">
-                <span class="field-label">Domain</span>
-                <input class="text-input" id="ntfyDomain" type="url" placeholder="https://ntfy.example.com" autocomplete="url">
-                <span class="helper-text">Root-URL des ntfy-Servers, bevorzugt über HTTPS.</span>
-              </label>
-              <label class="form-field">
-                <span class="field-label">Topic</span>
-                <input class="text-input" id="ntfyTopic" type="text" placeholder="hetznerwatch" autocomplete="off">
-                <span class="helper-text">Buchstaben, Zahlen, Unterstrich und Bindestrich.</span>
-              </label>
-              <label class="form-field">
-                <span class="field-label">Authentifizierung</span>
+              <div class="form-field">
+                <div class="field-heading"><label class="field-label" for="ntfyDomain" data-i18n="ntfy.server">Server URL</label><button class="info-button" type="button" data-help-target="ntfyDomainHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
+                <input class="text-input" id="ntfyDomain" type="url" placeholder="https://ntfy.sh" autocomplete="url">
+                <div class="field-help" id="ntfyDomainHelp" hidden data-i18n="ntfy.serverHelp">Use https://ntfy.sh or the root URL of your self-hosted ntfy server.</div>
+              </div>
+              <div class="form-field">
+                <div class="field-heading"><label class="field-label" for="ntfyTopic">Topic</label><button class="info-button" type="button" data-help-target="ntfyTopicHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
+                <div class="input-action-row">
+                  <input class="text-input" id="ntfyTopic" type="text" placeholder="hetznerwatch_amber482falcon073river916cobalt" autocomplete="off">
+                  <div class="input-action-buttons">
+                    <button class="button" id="generateNtfyTopic" type="button">
+                      <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.2 6.6L3 16"></path><path d="M3 21v-5h5"></path><path d="M3 12A9 9 0 0 1 18.2 5.4L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                      <span data-i18n="ntfy.newTopic">New topic</span>
+                    </button>
+                    <button class="button" id="copyNtfyTopic" type="button">
+                      <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                      <span data-i18n="ntfy.copyTopic">Copy topic</span>
+                    </button>
+                  </div>
+                </div>
+                <span class="helper-text" id="ntfyTopicCopyStatus" role="status" aria-live="polite"></span>
+                <div class="field-help" id="ntfyTopicHelp" hidden data-i18n="ntfy.topicHelp">Topics on the public server are not passwords. Choose a long, hard-to-guess value and subscribe to exactly the same topic in your ntfy app.</div>
+              </div>
+              <div class="form-field">
+                <div class="field-heading"><label class="field-label" for="ntfyAuthMode" data-i18n="ntfy.auth">Authentication</label><button class="info-button" type="button" data-help-target="ntfyAuthHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
                 <select class="select-input" id="ntfyAuthMode">
-                  <option value="none">Keine</option>
-                  <option value="basic">Benutzername und Passwort</option>
-                  <option value="token">Zugriffstoken</option>
+                  <option value="none" data-i18n="ntfy.authNone">None</option>
+                  <option value="basic" data-i18n="ntfy.authBasic">Username and password</option>
+                  <option value="token" data-i18n="ntfy.authToken">Access token</option>
                 </select>
-              </label>
+                <div class="field-help" id="ntfyAuthHelp" hidden data-i18n="ntfy.authHelp">Public topics usually need no authentication. Self-hosted servers may require basic authentication or an access token.</div>
+              </div>
               <div class="form-field" aria-hidden="true"></div>
-              <label class="form-field" id="ntfyUsernameField" hidden>
-                <span class="field-label">Benutzername</span>
+              <div class="form-field" id="ntfyUsernameField" hidden>
+                <div class="field-heading"><label class="field-label" for="ntfyUsername" data-i18n="ntfy.username">Username</label><button class="info-button" type="button" data-help-target="ntfyUsernameHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
                 <input class="text-input" id="ntfyUsername" type="text" autocomplete="username">
-              </label>
-              <label class="form-field" id="ntfyPasswordField" hidden>
-                <span class="field-label">Passwort</span>
+                <div class="field-help" id="ntfyUsernameHelp" hidden data-i18n="ntfy.usernameHelp">The username configured on your ntfy server.</div>
+              </div>
+              <div class="form-field" id="ntfyPasswordField" hidden>
+                <div class="field-heading"><label class="field-label" for="ntfyPassword" data-i18n="ntfy.password">Password</label><button class="info-button" type="button" data-help-target="ntfyPasswordHelpMore" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
                 <input class="text-input" id="ntfyPassword" type="password" autocomplete="current-password">
-                <span class="helper-text" id="ntfyPasswordHelp">Leer lassen, um ein gespeichertes Passwort beizubehalten.</span>
-              </label>
-              <label class="form-field" id="ntfyTokenField" hidden>
-                <span class="field-label">Zugriffstoken</span>
+                <span class="helper-text" id="ntfyPasswordHelp"></span>
+                <div class="field-help" id="ntfyPasswordHelpMore" hidden data-i18n="ntfy.passwordHelp">The password is stored in the local SQLite database and is never returned to the browser.</div>
+              </div>
+              <div class="form-field" id="ntfyTokenField" hidden>
+                <div class="field-heading"><label class="field-label" for="ntfyToken" data-i18n="ntfy.token">Access token</label><button class="info-button" type="button" data-help-target="ntfyTokenHelpMore" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
                 <input class="text-input" id="ntfyToken" type="password" autocomplete="off">
-                <span class="helper-text" id="ntfyTokenHelp">Leer lassen, um ein gespeichertes Token beizubehalten.</span>
-              </label>
+                <span class="helper-text" id="ntfyTokenHelp"></span>
+                <div class="field-help" id="ntfyTokenHelpMore" hidden data-i18n="ntfy.tokenHelp">Use an access token issued by your ntfy server. It is stored locally and is never returned to the browser.</div>
+              </div>
               <div class="form-field full">
-                <label class="field-label" for="ntfyMessage">Nachricht</label>
-                <textarea class="textarea-input" id="ntfyMessage" maxlength="1000" aria-describedby="placeholderHelp"></textarea>
-                <span class="helper-text" id="placeholderHelp">Platzhalter an der Cursorposition einfügen:</span>
+                <div class="field-heading"><label class="field-label" for="ntfyDashboardUrl" data-i18n="ntfy.dashboard">Dashboard link</label><button class="info-button" type="button" data-help-target="ntfyDashboardHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
+                <input class="text-input" id="ntfyDashboardUrl" type="url" placeholder="https://hetznerwatch.example.com" autocomplete="url">
+                <div class="field-help" id="ntfyDashboardHelp" hidden>
+                  <span data-i18n="ntfy.dashboardHelp">This URL opens when you tap the notification. It must be reachable from the receiving device; localhost only works on that same device.</span>
+                  <a href="https://docs.ntfy.sh/publish/#click-action" target="_blank" rel="noreferrer" data-i18n="common.ntfyPublishDocs">ntfy publish documentation</a>
+                </div>
+              </div>
+              <div class="form-field full">
+                <div class="field-heading"><label class="field-label" for="ntfyMessage" data-i18n="ntfy.message">Message</label><button class="info-button" type="button" data-help-target="ntfyMessageHelp" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
+                <textarea class="textarea-input" id="ntfyMessage" maxlength="1000"></textarea>
+                <div class="field-help" id="ntfyMessageHelp" hidden data-i18n="ntfy.messageHelp">Customize the notification text with the supported placeholders below.</div>
+                <span class="helper-text" id="placeholderHelp" data-i18n="ntfy.placeholders">Insert a placeholder at the cursor:</span>
                 <div class="placeholder-list" id="placeholderList"></div>
               </div>
               <div class="form-field full">
-                <span class="field-label">Vorschau</span>
+                <span class="field-label" data-i18n="ntfy.preview">Preview</span>
                 <div class="message-preview" id="messagePreview"></div>
               </div>
             </div>
+            <div class="form-actions ntfy-test-actions">
+              <div class="form-status" id="ntfyTestStatus" role="status" aria-live="polite"></div>
+              <button class="button secondary" id="testNtfyButton" type="button" disabled>
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9Z"></path></svg>
+                <span data-i18n="ntfy.test">Send test message</span>
+              </button>
+            </div>
           </div>
         </section>
-
-        <div class="form-actions">
-          <div class="form-status" id="settingsStatus" role="status" aria-live="polite"></div>
-          <button class="button secondary" id="testNtfyButton" type="button">
-            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
-              <path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9Z"></path>
-            </svg>
-            <span>Testnachricht senden</span>
-          </button>
-          <button class="button primary" id="saveSettingsButton" type="submit">
-            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
-              <path d="M17 21v-8H7v8M7 3v5h8"></path>
-            </svg>
-            <span>Einstellungen speichern</span>
-          </button>
-        </div>
       </form>
+    </section>
+
+    <section class="page-view" id="instructionsPage" role="tabpanel" aria-labelledby="instructionsTab" data-page="instructions" hidden>
+      <div class="settings-heading">
+        <div class="settings-heading-copy">
+          <h2 data-i18n="instructions.title">Instructions</h2>
+          <p class="section-intro" data-i18n="instructions.copy">Set up HetznerWatch step by step, then learn how to read every availability graphic.</p>
+        </div>
+      </div>
+      <article class="documentation">
+        <div class="documentation-toc">
+          <strong data-i18n="instructions.toc">In this guide</strong>
+          <ol>
+            <li data-i18n="instructions.tocStart">Start HetznerWatch</li>
+            <li data-i18n="instructions.tocToken">Connect the Hetzner API</li>
+            <li data-i18n="instructions.tocMonitoring">Choose monitoring targets</li>
+            <li data-i18n="instructions.tocDashboard">Read the dashboard timeline</li>
+            <li data-i18n="instructions.tocLongTerm">Read the long-term charts</li>
+            <li data-i18n="instructions.tocNtfy">Configure ntfy notifications</li>
+            <li data-i18n="instructions.tocOperate">Operate and update the installation</li>
+          </ol>
+        </div>
+
+        <section class="documentation-section" id="instructions-start">
+          <h3 data-i18n="instructions.startTitle">1. Start HetznerWatch</h3>
+          <p data-i18n="instructions.startIntro">Docker Compose starts the application and its persistent SQLite volume. No .env file is required.</p>
+          <ol>
+            <li data-i18n="instructions.start1">Install Docker Desktop or Docker Engine with Docker Compose.</li>
+            <li data-i18n="instructions.start2">Open a terminal in the HetznerWatch project directory.</li>
+            <li><span data-i18n="instructions.start3">Build and start the service:</span> <code>docker compose up -d --build</code></li>
+            <li><span data-i18n="instructions.start4">Open the local dashboard:</span> <code>http://localhost:8080</code></li>
+          </ol>
+        </section>
+
+        <section class="documentation-section" id="instructions-token">
+          <h3 data-i18n="instructions.tokenTitle">2. Connect the Hetzner API</h3>
+          <p data-i18n="instructions.tokenIntro">HetznerWatch only needs a read-only token to load the server catalog and availability information.</p>
+          <ol>
+            <li data-i18n="instructions.token1">Open your project in Hetzner Cloud Console.</li>
+            <li data-i18n="instructions.token2">Open Security → API Tokens and choose Generate API Token.</li>
+            <li data-i18n="instructions.token3">Select Read permission, create the token and copy it immediately.</li>
+            <li data-i18n="instructions.token4">Open Settings → Hetzner Cloud API token in HetznerWatch and paste the token.</li>
+            <li data-i18n="instructions.token5">Click elsewhere after pasting. The status at the top confirms the automatic save, and the first availability check starts immediately.</li>
+          </ol>
+          <p class="documentation-note" data-i18n="instructions.tokenNote">The token is stored in the local SQLite database and is never returned to the browser. Leave the field empty later to keep the stored token.</p>
+          <p><a href="https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/" target="_blank" rel="noreferrer" data-hetzner-doc data-i18n="common.officialDocs">Official documentation</a></p>
+        </section>
+
+        <section class="documentation-section" id="instructions-monitoring">
+          <h3 data-i18n="instructions.monitoringTitle">3. Choose monitoring targets</h3>
+          <p data-i18n="instructions.monitoringIntro">The separate Monitoring tab controls both the check interval and the server/location combinations shown on the dashboard.</p>
+          <ol>
+            <li data-i18n="instructions.monitoring1">Open Monitoring.</li>
+            <li data-i18n="instructions.monitoring2">Set an interval between 10 and 86400 seconds.</li>
+            <li data-i18n="instructions.monitoring3">Reload the catalog after adding or replacing the Hetzner token.</li>
+            <li data-i18n="instructions.monitoring4">Select every server type and location pair you want to observe.</li>
+            <li data-i18n="instructions.monitoring5">Changes are saved automatically. Wait for the Saved status, then return to the dashboard.</li>
+          </ol>
+          <p class="documentation-note" data-i18n="instructions.monitoringNote">One checkbox represents one target, for example CX23 in fsn1. A yellow Recommended label is Hetzner's location recommendation, not a guarantee of availability.</p>
+        </section>
+
+        <section class="documentation-section" id="instructions-dashboard">
+          <h3 data-i18n="instructions.dashboardTitle">4. Read the dashboard timeline</h3>
+          <p data-i18n="instructions.dashboardIntro">The dashboard shows the current state first and the individual checks below it.</p>
+          <ul>
+            <li data-i18n="instructions.dashboardSummary">The summary shows the number of targets, the active interval and the time of the latest check.</li>
+            <li data-i18n="instructions.dashboardTarget">Each target header shows its server type, location, current state and latest timestamp.</li>
+            <li data-i18n="instructions.dashboardHistory">The History selector controls how many recent checks are visible.</li>
+          </ul>
+
+          <h4 data-i18n="instructions.timelineTitle">How to read the box timeline</h4>
+          <p data-i18n="instructions.timelineCopy">Each box is one check. Time runs from the oldest check on the left to the newest check on the right. Hover or focus a box to see its exact time, result and any HTTP error.</p>
+          <div class="documentation-example">
+            <strong class="documentation-example-title" data-i18n="instructions.timelineExampleTitle">Example: sold out, then available again</strong>
+            <div class="example-box-strip" role="img" data-i18n-aria="instructions.timelineExampleAria">
+              <span class="example-check available"></span>
+              <span class="example-check unavailable"></span>
+              <span class="example-check unavailable"></span>
+              <span class="example-check"></span>
+              <span class="example-check available recommended"></span>
+              <span class="example-check available"></span>
+            </div>
+            <div class="example-axis" aria-hidden="true">
+              <span data-i18n="instructions.older">Older</span>
+              <span data-i18n="instructions.newer">Newer</span>
+            </div>
+            <div class="documentation-legend">
+              <span class="legend-item"><span class="legend-swatch available"></span><span data-i18n="status.available">Available</span></span>
+              <span class="legend-item"><span class="legend-swatch unavailable"></span><span data-i18n="status.unavailable">Unavailable</span></span>
+              <span class="legend-item"><span class="legend-swatch"></span><span data-i18n="status.error">Error</span></span>
+              <span class="legend-item"><span class="legend-swatch recommended"></span><span data-i18n="status.recommended">Recommended</span></span>
+            </div>
+          </div>
+          <p data-i18n="instructions.timelineInterpretation">In this example the target is unavailable for two checks, one API check fails, and the target then returns. If ntfy is enabled, the change from unavailable to available triggers a notification.</p>
+        </section>
+
+        <section class="documentation-section" id="instructions-long-term">
+          <h3 data-i18n="instructions.longTitle">5. Read the long-term charts</h3>
+          <p data-i18n="instructions.longIntro">Long-term monitoring groups successful measurements into time buckets. Select 24 hours, 7, 30 or 90 days to change the aggregation.</p>
+
+          <h4 data-i18n="instructions.metricsTitle">Summary values and thin lines</h4>
+          <ul>
+            <li data-i18n="instructions.metrics1">Servers & locations counts the catalog combinations included in the view.</li>
+            <li data-i18n="instructions.metrics2">Data coverage shows how much of the selected target/time grid contains measurements.</li>
+            <li data-i18n="instructions.metrics3">Historically available is the availability share across successful checks.</li>
+            <li data-i18n="instructions.metrics4">Currently available compares targets available now with all observed targets.</li>
+          </ul>
+          <div class="documentation-example">
+            <strong class="documentation-example-title" data-i18n="instructions.metricExampleTitle">Example: an improving metric line</strong>
+            <div class="example-metric-line" role="img" data-i18n-aria="instructions.metricExampleAria">
+              <svg viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
+                <path class="metric-line-grid" d="M0 32 H100"></path>
+                <path class="metric-line" d="M0 28 L20 24 L40 27 L60 16 L80 18 L100 8"></path>
+                <circle class="metric-line-point" cx="100" cy="8" r="1.5"></circle>
+              </svg>
+            </div>
+            <div class="example-chart-axis" aria-hidden="true"><span data-i18n="instructions.older">Older</span><span data-i18n="instructions.newer">Newer</span></div>
+          </div>
+          <p data-i18n="instructions.metricInterpretation">Read the thin line from left to right. A rising line means the displayed metric increased; an interruption means that bucket has no usable measurement. The large number remains the primary value.</p>
+
+          <h4 data-i18n="instructions.barsTitle">Availability bars by location</h4>
+          <p data-i18n="instructions.barsCopy">Each bar is one time bucket. Its height is the percentage of successful checks in which the server was available at that location.</p>
+          <div class="documentation-example">
+            <strong class="documentation-example-title" data-i18n="instructions.barsExampleTitle">Example: changing availability by time bucket</strong>
+            <div class="example-availability-chart" role="img" data-i18n-aria="instructions.barsExampleAria">
+              <span class="example-availability-bar" style="--availability: 100%"></span>
+              <span class="example-availability-bar" style="--availability: 75%"></span>
+              <span class="example-availability-bar is-zero"></span>
+              <span class="example-availability-bar is-empty"></span>
+              <span class="example-availability-bar" style="--availability: 50%"></span>
+              <span class="example-availability-bar" style="--availability: 100%"></span>
+            </div>
+            <div class="example-chart-axis" aria-hidden="true"><span data-i18n="instructions.older">Older</span><span data-i18n="instructions.newer">Newer</span></div>
+          </div>
+          <p data-i18n="instructions.barsInterpretation">A tall green bar means high availability, a red baseline means 0%, and a gray baseline means no data. The labels Often, Sometimes, Rarely and Never summarize the percentage for the complete selected range.</p>
+          <p class="documentation-note" data-i18n="instructions.longCaution">Long-term values describe past observations only. They do not guarantee that Hetzner will have capacity when you order.</p>
+        </section>
+
+        <section class="documentation-section" id="instructions-ntfy">
+          <h3 data-i18n="instructions.ntfyTitle">6. Configure ntfy notifications</h3>
+          <p data-i18n="instructions.ntfyIntro">HetznerWatch preconfigures the public ntfy server and a random topic. Notifications remain disabled until your phone is subscribed.</p>
+          <ol>
+            <li data-i18n="instructions.ntfy1">Install the ntfy app on Android or iPhone.</li>
+            <li data-i18n="instructions.ntfy2">Under Settings, copy the generated topic beginning with hetznerwatch_.</li>
+            <li data-i18n="instructions.ntfy3">In the app, add a subscription on https://ntfy.sh and paste that exact topic.</li>
+            <li data-i18n="instructions.ntfy4">Enable ntfy in HetznerWatch. The change is saved automatically.</li>
+            <li data-i18n="instructions.ntfy5">Choose Send test message and confirm that it arrives on the phone.</li>
+          </ol>
+          <p class="documentation-note" data-i18n="instructions.ntfyNote">Anyone who knows a public topic can read or publish to it. Keep the generated topic private. The dashboard link must also be reachable from your phone.</p>
+          <p><a href="https://docs.ntfy.sh/subscribe/phone/" target="_blank" rel="noreferrer" data-i18n="ntfy.phoneDocs">Smartphone guide</a></p>
+        </section>
+
+        <section class="documentation-section" id="instructions-operate">
+          <h3 data-i18n="instructions.operateTitle">7. Operate and update HetznerWatch</h3>
+          <ul>
+            <li><span data-i18n="instructions.logs">Follow runtime messages with</span> <code>docker compose logs -f</code>.</li>
+            <li><span data-i18n="instructions.restart">Restart the service with</span> <code>docker compose up -d</code>.</li>
+            <li><span data-i18n="instructions.update">After pulling an update, rebuild with</span> <code>docker compose up -d --build</code>.</li>
+            <li data-i18n="instructions.data">Settings, secrets and history live in the SQLite database inside the named Docker volume.</li>
+            <li data-i18n="instructions.security">Back up the volume before replacing the installation and protect the dashboard before exposing it to a network.</li>
+          </ul>
+        </section>
+      </article>
     </section>
   </main>
 
   <script>
     "use strict";
 
+    const TRANSLATIONS = {
+      en: {
+        "meta.title": "HetznerWatch – Server availability",
+        "nav.main": "Main navigation",
+        "nav.longTerm": "Long-term",
+        "nav.monitoring": "Monitoring",
+        "nav.settings": "Settings",
+        "nav.instructions": "Instructions",
+        "connection.connecting": "Connecting …",
+        "connection.connected": "Monitor connected",
+        "connection.paused": "Checks paused",
+        "connection.interrupted": "Connection interrupted",
+        "dashboard.tools": "Dashboard tools",
+        "dashboard.history": "History",
+        "dashboard.visibleChecks": "Visible checks",
+        "dashboard.checks60": "60 checks",
+        "dashboard.checks120": "120 checks",
+        "dashboard.checks240": "240 checks",
+        "dashboard.checks500": "500 checks",
+        "dashboard.targets": "Monitored targets",
+        "dashboard.interval": "Check interval",
+        "dashboard.lastCheck": "Last check",
+        "dashboard.loading": "Loading history …",
+        "dashboard.noTargets": "No monitoring targets are configured.",
+        "dashboard.selectTargets": "Select targets",
+        "dashboard.retryAuto": "A retry will follow automatically.",
+        "dashboard.retryNow": "Retry now",
+        "setup.title": "Finish the initial setup",
+        "setup.copy": "Add a read-only Hetzner Cloud API token before monitoring can start.",
+        "setup.button": "Open settings",
+        "common.refresh": "Refresh",
+        "common.retry": "Retry",
+        "common.officialDocs": "Official documentation",
+        "common.ntfyDocs": "ntfy documentation",
+        "common.ntfyPublishDocs": "ntfy publish documentation",
+        "theme.dark": "Dark mode",
+        "theme.light": "Light mode",
+        "monitor.pause": "Pause checks",
+        "monitor.start": "Start checks",
+        "status.available": "Available",
+        "status.unavailable": "Unavailable",
+        "status.soldOut": "Sold out",
+        "status.error": "Error",
+        "status.checkError": "Check failed",
+        "status.recommended": "Recommended",
+        "status.noData": "No data yet",
+        "status.open": "Status unknown",
+        "time.noCheck": "No check yet",
+        "time.seconds": "{count} seconds",
+        "time.minute": "1 minute",
+        "time.minutes": "{count} minutes",
+        "time.hour": "1 hour",
+        "time.hours": "{count} hours",
+        "target.location": "Location {location}",
+        "target.waiting": "Waiting for first check",
+        "target.timeline": "Timeline",
+        "target.summary": "{available} of {total} successful checks available",
+        "target.checks": "{count} checks",
+        "target.historyLabel": "Check history",
+        "target.noStored": "No data stored yet.",
+        "target.firstSoon": "The first check will run shortly.",
+        "target.hetznerRecommended": "recommended by Hetzner",
+        "long.title": "Long-term monitoring",
+        "long.copy": "Historical availability for all server types and locations based on successful catalog checks. These values are an observation, not an availability forecast.",
+        "long.range": "Range",
+        "long.serversLocations": "Servers & locations",
+        "long.coverage": "Data coverage",
+        "long.historical": "Historically available",
+        "long.current": "Currently available",
+        "long.loading": "Loading long-term data …",
+        "long.locations": "{count} locations",
+        "long.serverType": "server type",
+        "long.serverTypes": "server types",
+        "long.summaryTargets": "{servers} servers & {locations} {locationWord}",
+        "long.of": "{current} of {total}",
+        "long.measurements": "{count} successful server/location measurements · one chart point per {interval}",
+        "long.starts": "Long-term history starts with the first successful fetch after setup.",
+        "long.noCatalog": "No server catalog is available yet.",
+        "long.loadCatalog": "Load the catalog in Monitoring",
+        "long.lastAvailable": "Last available: {date}",
+        "long.notObserved": "Not observed as available in this range",
+        "long.successfulMeasurements": "{count} successful measurements",
+        "long.chart": "Historical availability for {location}",
+        "long.chartEmpty": "No historical availability yet for {location}",
+        "long.noDataPoint": "no data",
+        "range.24h": "24 hours",
+        "range.7d": "7 days",
+        "range.30d": "30 days",
+        "range.90d": "90 days",
+        "price.unavailable": "Price unavailable",
+        "price.monthly": "{price} gross / month",
+        "price.range": "From {minimum} to {maximum} gross / month",
+        "availability.often": "Often available",
+        "availability.sometimes": "Sometimes available",
+        "availability.rarely": "Rarely available",
+        "availability.never": "Never available in this range",
+        "availability.current": "Currently available",
+        "availability.currentSoldOut": "Currently sold out",
+        "availability.currentOpen": "Current status unknown",
+        "catalog.other": "Other server types",
+        "catalog.empty": "No server catalog available.",
+        "catalog.reload": "Reload catalog",
+        "catalog.liveError": "Live catalog unavailable: {error}{cached}",
+        "catalog.cached": " Cached data is shown.",
+        "catalog.loaded": "Loaded {count} server types from Hetzner.",
+        "catalog.recommendedTitle": "Location recommended by Hetzner for this server type.",
+        "settings.title": "Settings",
+        "settings.copy": "Configure API access, language, branding and notifications. Monitoring targets have their own tab.",
+        "settings.saving": "Saving settings …",
+        "settings.saved": "Saved: {date}",
+        "settings.loadFirst": "Wait until the saved settings have loaded, then try again.",
+        "autosave.ready": "All changes saved",
+        "autosave.pending": "Changes not saved yet",
+        "autosave.savingFirstCheck": "Saving · running first check …",
+        "api.title": "Hetzner Cloud API token",
+        "api.copy": "Required for the live server catalog and availability checks. Read permission is sufficient.",
+        "api.statusConfigured": "Configured",
+        "api.statusRequired": "Required",
+        "general.title": "General",
+        "general.copy": "Interface language and branding.",
+        "general.language": "Language",
+        "general.languageHelp": "English is the default. The selected language is stored for this installation.",
+        "general.token": "Hetzner Cloud API token",
+        "general.tokenHelp": "In Hetzner Cloud Console, open your project, then Security → API Tokens → Generate API Token. Read permission is sufficient. Copy it immediately; Hetzner only shows it once.",
+        "general.tokenSet": "API token configured. HetznerWatch will keep using the saved token; the actual secret is never returned to this browser.",
+        "general.tokenMissing": "No API token configured. Paste a read-only token to load the catalog and start availability checks.",
+        "general.tokenReplacing": "Paste the replacement token. The current token remains configured until the new value is saved successfully.",
+        "general.tokenPlaceholder": "Paste a read-only token",
+        "general.replaceToken": "Replace token",
+        "general.cancelTokenReplace": "Cancel",
+        "general.logo": "Custom logo URL",
+        "general.logoHelp": "Leave this empty to keep the Heisel Analytics logo. Use a directly reachable HTTP or HTTPS image URL. Loading an external image shares the viewer's IP address with its host.",
+        "monitoring.title": "Monitoring",
+        "monitoring.pageCopy": "Choose how often HetznerWatch checks availability and which server/location combinations belong on the dashboard.",
+        "monitoring.targetsTitle": "Targets and interval",
+        "monitoring.copy": "Choose the interval and every server type/location combination to monitor.",
+        "monitoring.interval": "Check interval in seconds",
+        "monitoring.intervalHelp": "Allowed range: 10 to 86400 seconds. A moderate interval reduces API traffic.",
+        "monitoring.targetsHelp": "Each selected checkbox creates one monitored server type/location target. The live catalog needs a valid Hetzner token.",
+        "monitoring.selectAll": "Select all",
+        "monitoring.clear": "Clear selection",
+        "monitoring.reload": "Reload catalog",
+        "monitoring.loading": "Loading the Hetzner server catalog …",
+        "monitoring.selectedOne": "1 target selected",
+        "monitoring.selectedMany": "{count} targets selected",
+        "monitoring.saving": "Saving monitoring …",
+        "monitoring.saved": "Monitoring saved: {date}",
+        "ntfy.title": "ntfy notifications",
+        "ntfy.copy": "A message is sent when a previously unavailable target becomes available.",
+        "ntfy.enabled": "Enable ntfy",
+        "ntfy.enabledCopy": "Send automatic notifications",
+        "ntfy.shortHelp": "The public server and a memorable random topic made from words and numbers are preconfigured. Subscribe to exactly this topic before enabling notifications.",
+        "ntfy.phoneTitle": "Set up your smartphone",
+        "ntfy.phone1": "Install the ntfy app for Android or iPhone.",
+        "ntfy.phone2": "In the app, add a topic on the public server https://ntfy.sh.",
+        "ntfy.phone3": "Copy the generated Topic shown below and subscribe to exactly that value.",
+        "ntfy.phone4": "Enable ntfy here and send a test message.",
+        "ntfy.phoneNote": "The public server needs no account. Treat the random topic like a password and do not share it.",
+        "ntfy.phoneDocs": "Smartphone guide",
+        "ntfy.newTopic": "New topic",
+        "ntfy.confirmNewTopic": "Confirm new topic",
+        "ntfy.newTopicConfirm": "Click Confirm new topic to continue. You must then update the subscription in every ntfy app.",
+        "ntfy.topicGenerated": "New topic generated. Saving …",
+        "ntfy.topicGenerateFailed": "A new topic could not be generated.",
+        "ntfy.copyTopic": "Copy topic",
+        "ntfy.topicCopied": "Topic copied.",
+        "ntfy.topicCopyFailed": "The topic could not be copied.",
+        "ntfy.server": "Server URL",
+        "ntfy.serverHelp": "Use https://ntfy.sh or the root URL of your self-hosted ntfy server.",
+        "ntfy.topicHelp": "Public topics are not access-controlled. Anyone who knows this value can subscribe or publish, so keep the generated topic private.",
+        "ntfy.auth": "Authentication",
+        "ntfy.authNone": "None",
+        "ntfy.authBasic": "Username and password",
+        "ntfy.authToken": "Access token",
+        "ntfy.authHelp": "Public topics usually need no authentication. Self-hosted servers may require basic authentication or an access token.",
+        "ntfy.username": "Username",
+        "ntfy.usernameHelp": "The username configured on your ntfy server.",
+        "ntfy.password": "Password",
+        "ntfy.passwordHelp": "The password is stored in the local SQLite database and is never returned to the browser.",
+        "ntfy.passwordSet": "Stored. Leave empty to keep the password.",
+        "ntfy.passwordEmpty": "Password for the ntfy user.",
+        "ntfy.token": "Access token",
+        "ntfy.tokenHelp": "Use an access token issued by your ntfy server. It is stored locally and is never returned to the browser.",
+        "ntfy.tokenSet": "Stored. Leave empty to keep the token.",
+        "ntfy.tokenEmpty": "Access token issued by the ntfy server.",
+        "ntfy.secretStored": "Stored",
+        "ntfy.dashboard": "Dashboard link",
+        "ntfy.dashboardHelp": "This URL opens when you tap the notification. It must be reachable from the receiving device; localhost only works on that same device.",
+        "ntfy.message": "Message",
+        "ntfy.messageHelp": "Customize the notification text with the supported placeholders below.",
+        "ntfy.placeholders": "Insert a placeholder at the cursor:",
+        "ntfy.preview": "Preview",
+        "ntfy.test": "Send test message",
+        "ntfy.testing": "Testing the ntfy connection …",
+        "ntfy.previewStatus": "available",
+        "ntfy.previewRecommended": "yes",
+        "instructions.title": "Instructions",
+        "instructions.copy": "Set up HetznerWatch step by step, then learn how to read every availability graphic.",
+        "instructions.toc": "In this guide",
+        "instructions.tocStart": "Start HetznerWatch",
+        "instructions.tocToken": "Connect the Hetzner API",
+        "instructions.tocMonitoring": "Choose monitoring targets",
+        "instructions.tocDashboard": "Read the dashboard timeline",
+        "instructions.tocLongTerm": "Read the long-term charts",
+        "instructions.tocNtfy": "Configure ntfy notifications",
+        "instructions.tocOperate": "Operate and update the installation",
+        "instructions.startTitle": "1. Start HetznerWatch",
+        "instructions.startIntro": "Docker Compose starts the application and its persistent SQLite volume. No .env file is required.",
+        "instructions.start1": "Install Docker Desktop or Docker Engine with Docker Compose.",
+        "instructions.start2": "Open a terminal in the HetznerWatch project directory.",
+        "instructions.start3": "Build and start the service:",
+        "instructions.start4": "Open the local dashboard:",
+        "instructions.tokenTitle": "2. Connect the Hetzner API",
+        "instructions.tokenIntro": "HetznerWatch only needs a read-only token to load the server catalog and availability information.",
+        "instructions.token1": "Open your project in Hetzner Cloud Console.",
+        "instructions.token2": "Open Security → API Tokens and choose Generate API Token.",
+        "instructions.token3": "Select Read permission, create the token and copy it immediately.",
+        "instructions.token4": "Open Settings → Hetzner Cloud API token in HetznerWatch and paste the token.",
+        "instructions.token5": "Click elsewhere after pasting. The status at the top confirms the automatic save, and the first availability check starts immediately.",
+        "instructions.tokenNote": "The token is stored in the local SQLite database and is never returned to the browser. A masked field and green status confirm that it is configured; use Replace token when you need to change it.",
+        "instructions.monitoringTitle": "3. Choose monitoring targets",
+        "instructions.monitoringIntro": "The separate Monitoring tab controls both the check interval and the server/location combinations shown on the dashboard.",
+        "instructions.monitoring1": "Open Monitoring.",
+        "instructions.monitoring2": "Set an interval between 10 and 86400 seconds.",
+        "instructions.monitoring3": "Reload the catalog after adding or replacing the Hetzner token.",
+        "instructions.monitoring4": "Select every server type and location pair you want to observe.",
+        "instructions.monitoring5": "Changes are saved automatically. Wait for the Saved status, then return to the dashboard.",
+        "instructions.monitoringNote": "One checkbox represents one target, for example CX23 in fsn1. A yellow Recommended label is Hetzner's location recommendation, not a guarantee of availability.",
+        "instructions.dashboardTitle": "4. Read the dashboard timeline",
+        "instructions.dashboardIntro": "The dashboard shows the current state first and the individual checks below it.",
+        "instructions.dashboardSummary": "The summary shows the number of targets, the active interval and the time of the latest check.",
+        "instructions.dashboardTarget": "Each target header shows its server type, location, current state and latest timestamp.",
+        "instructions.dashboardHistory": "The History selector controls how many recent checks are visible.",
+        "instructions.timelineTitle": "How to read the box timeline",
+        "instructions.timelineCopy": "Each box is one check. Time runs from the oldest check on the left to the newest check on the right. Hover or focus a box to see its exact time, result and any HTTP error.",
+        "instructions.timelineExampleTitle": "Example: sold out, then available again",
+        "instructions.timelineExampleAria": "Six checks from older to newer: available, unavailable, unavailable, check error, available and recommended, available.",
+        "instructions.older": "Older",
+        "instructions.newer": "Newer",
+        "instructions.timelineInterpretation": "In this example the target is unavailable for two checks, one API check fails, and the target then returns. If ntfy is enabled, the change from unavailable to available triggers a notification.",
+        "instructions.longTitle": "5. Read the long-term charts",
+        "instructions.longIntro": "Long-term monitoring groups successful measurements into time buckets. Select 24 hours, 7, 30 or 90 days to change the aggregation.",
+        "instructions.metricsTitle": "Summary values and thin lines",
+        "instructions.metrics1": "Servers & locations counts the catalog combinations included in the view.",
+        "instructions.metrics2": "Data coverage shows how much of the selected target/time grid contains measurements.",
+        "instructions.metrics3": "Historically available is the availability share across successful checks.",
+        "instructions.metrics4": "Currently available compares targets available now with all observed targets.",
+        "instructions.metricExampleTitle": "Example: an improving metric line",
+        "instructions.metricExampleAria": "A line that fluctuates and then rises from an older low value to a newer high value.",
+        "instructions.metricInterpretation": "Read the thin line from left to right. A rising line means the displayed metric increased; an interruption means that bucket has no usable measurement. The large number remains the primary value.",
+        "instructions.barsTitle": "Availability bars by location",
+        "instructions.barsCopy": "Each bar is one time bucket. Its height is the percentage of successful checks in which the server was available at that location.",
+        "instructions.barsExampleTitle": "Example: changing availability by time bucket",
+        "instructions.barsExampleAria": "Six time buckets from older to newer: 100 percent, 75 percent, 0 percent, no data, 50 percent and 100 percent availability.",
+        "instructions.barsInterpretation": "A tall green bar means high availability, a red baseline means 0%, and a gray baseline means no data. The labels Often, Sometimes, Rarely and Never summarize the percentage for the complete selected range.",
+        "instructions.longCaution": "Long-term values describe past observations only. They do not guarantee that Hetzner will have capacity when you order.",
+        "instructions.ntfyTitle": "6. Configure ntfy notifications",
+        "instructions.ntfyIntro": "HetznerWatch preconfigures the public ntfy server and a random topic. Notifications remain disabled until your phone is subscribed.",
+        "instructions.ntfy1": "Install the ntfy app on Android or iPhone.",
+        "instructions.ntfy2": "Under Settings, copy the generated topic beginning with hetznerwatch_.",
+        "instructions.ntfy3": "In the app, add a subscription on https://ntfy.sh and paste that exact topic.",
+        "instructions.ntfy4": "Enable ntfy in HetznerWatch. The change is saved automatically.",
+        "instructions.ntfy5": "Choose Send test message and confirm that it arrives on the phone.",
+        "instructions.ntfyNote": "Anyone who knows a public topic can read or publish to it. Keep the generated topic private. The dashboard link must also be reachable from your phone.",
+        "instructions.operateTitle": "7. Operate and update HetznerWatch",
+        "instructions.logs": "Follow runtime messages with",
+        "instructions.restart": "Restart the service with",
+        "instructions.update": "After pulling an update, rebuild with",
+        "instructions.data": "Settings, secrets and history live in the SQLite database inside the named Docker volume.",
+        "instructions.security": "Back up the volume before replacing the installation and protect the dashboard before exposing it to a network.",
+        "help.information": "Information"
+      },
+      de: {
+        "meta.title": "HetznerWatch – Server-Verfügbarkeit",
+        "nav.main": "Hauptnavigation",
+        "nav.longTerm": "Langzeit",
+        "nav.monitoring": "Überwachung",
+        "nav.settings": "Einstellungen",
+        "nav.instructions": "Anleitung",
+        "connection.connecting": "Verbinde …",
+        "connection.connected": "Monitor verbunden",
+        "connection.paused": "Abfragen pausiert",
+        "connection.interrupted": "Verbindung unterbrochen",
+        "dashboard.tools": "Dashboard-Werkzeuge",
+        "dashboard.history": "Verlauf",
+        "dashboard.visibleChecks": "Sichtbare Abfragen",
+        "dashboard.checks60": "60 Abfragen",
+        "dashboard.checks120": "120 Abfragen",
+        "dashboard.checks240": "240 Abfragen",
+        "dashboard.checks500": "500 Abfragen",
+        "dashboard.targets": "Überwachte Ziele",
+        "dashboard.interval": "Abfrageintervall",
+        "dashboard.lastCheck": "Letzte Abfrage",
+        "dashboard.loading": "Verlauf wird geladen …",
+        "dashboard.noTargets": "Es sind keine Überwachungsziele konfiguriert.",
+        "dashboard.selectTargets": "Ziele auswählen",
+        "dashboard.retryAuto": "Ein neuer Versuch folgt automatisch.",
+        "dashboard.retryNow": "Jetzt erneut versuchen",
+        "setup.title": "Ersteinrichtung abschließen",
+        "setup.copy": "Füge einen Hetzner-Cloud-API-Token mit Leserechten hinzu, bevor die Überwachung starten kann.",
+        "setup.button": "Einstellungen öffnen",
+        "common.refresh": "Aktualisieren",
+        "common.retry": "Erneut versuchen",
+        "common.officialDocs": "Offizielle Dokumentation",
+        "common.ntfyDocs": "ntfy-Dokumentation",
+        "common.ntfyPublishDocs": "ntfy-Publish-Dokumentation",
+        "theme.dark": "Dunkelmodus",
+        "theme.light": "Hellmodus",
+        "monitor.pause": "Abfragen pausieren",
+        "monitor.start": "Abfragen starten",
+        "status.available": "Verfügbar",
+        "status.unavailable": "Nicht verfügbar",
+        "status.soldOut": "Ausgebucht",
+        "status.error": "Fehler",
+        "status.checkError": "Abfragefehler",
+        "status.recommended": "Empfohlen",
+        "status.noData": "Noch keine Daten",
+        "status.open": "Status offen",
+        "time.noCheck": "Noch keine Abfrage",
+        "time.seconds": "{count} Sekunden",
+        "time.minute": "1 Minute",
+        "time.minutes": "{count} Minuten",
+        "time.hour": "1 Stunde",
+        "time.hours": "{count} Stunden",
+        "target.location": "Standort {location}",
+        "target.waiting": "Warte auf erste Abfrage",
+        "target.timeline": "Zeitverlauf",
+        "target.summary": "{available} von {total} erfolgreichen Abfragen verfügbar",
+        "target.checks": "{count} Abfragen",
+        "target.historyLabel": "Abfrageverlauf",
+        "target.noStored": "Noch keine Daten gespeichert.",
+        "target.firstSoon": "Die erste Abfrage läuft in Kürze.",
+        "target.hetznerRecommended": "von Hetzner empfohlen",
+        "long.title": "Langzeitüberwachung",
+        "long.copy": "Historische Verfügbarkeit aller Servertypen und Standorte aus erfolgreichen Gesamtabfragen. Die Werte helfen bei der Einschätzung, sind aber keine Verfügbarkeitsprognose.",
+        "long.range": "Zeitraum",
+        "long.serversLocations": "Server & Standorte",
+        "long.coverage": "Datenabdeckung",
+        "long.historical": "Historisch verfügbar",
+        "long.current": "Aktuell verfügbar",
+        "long.loading": "Langzeitdaten werden geladen …",
+        "long.locations": "{count} Standorte",
+        "long.serverType": "Servertyp",
+        "long.serverTypes": "Servertypen",
+        "long.summaryTargets": "{servers} Server & {locations} {locationWord}",
+        "long.of": "{current} von {total}",
+        "long.measurements": "{count} erfolgreiche Server-/Standortmessungen · ein Diagrammpunkt je {interval}",
+        "long.starts": "Die Langzeithistorie beginnt mit dem ersten erfolgreichen Abruf nach der Einrichtung.",
+        "long.noCatalog": "Noch kein Serverkatalog verfügbar.",
+        "long.loadCatalog": "Katalog unter Überwachung laden",
+        "long.lastAvailable": "Zuletzt verfügbar: {date}",
+        "long.notObserved": "Im Zeitraum nicht verfügbar beobachtet",
+        "long.successfulMeasurements": "{count} erfolgreiche Messungen",
+        "long.chart": "Historischer Verfügbarkeitsverlauf für {location}",
+        "long.chartEmpty": "Noch kein historischer Verfügbarkeitsverlauf für {location}",
+        "long.noDataPoint": "keine Daten",
+        "range.24h": "24 Stunden",
+        "range.7d": "7 Tage",
+        "range.30d": "30 Tage",
+        "range.90d": "90 Tage",
+        "price.unavailable": "Preis nicht verfügbar",
+        "price.monthly": "{price} brutto / Monat",
+        "price.range": "Von {minimum} bis {maximum} brutto / Monat",
+        "availability.often": "Oft verfügbar",
+        "availability.sometimes": "Zeitweise verfügbar",
+        "availability.rarely": "Selten verfügbar",
+        "availability.never": "Im Zeitraum nie verfügbar",
+        "availability.current": "Aktuell verfügbar",
+        "availability.currentSoldOut": "Aktuell ausgebucht",
+        "availability.currentOpen": "Aktueller Status offen",
+        "catalog.other": "Weitere Servertypen",
+        "catalog.empty": "Kein Serverkatalog verfügbar.",
+        "catalog.reload": "Katalog erneut laden",
+        "catalog.liveError": "Live-Katalog nicht verfügbar: {error}{cached}",
+        "catalog.cached": " Gespeicherte Daten werden angezeigt.",
+        "catalog.loaded": "{count} Servertypen von Hetzner geladen.",
+        "catalog.recommendedTitle": "Von Hetzner für diesen Servertyp empfohlener Standort.",
+        "settings.title": "Einstellungen",
+        "settings.copy": "Konfiguriere API-Zugriff, Sprache, Branding und Benachrichtigungen. Überwachungsziele haben einen eigenen Tab.",
+        "settings.saving": "Einstellungen werden gespeichert …",
+        "settings.saved": "Gespeichert: {date}",
+        "settings.loadFirst": "Warte, bis die gespeicherten Einstellungen geladen sind, und versuche es erneut.",
+        "autosave.ready": "Alle Änderungen gespeichert",
+        "autosave.pending": "Änderungen noch nicht gespeichert",
+        "autosave.savingFirstCheck": "Speichern · erste Abfrage läuft …",
+        "api.title": "Hetzner-Cloud-API-Token",
+        "api.copy": "Erforderlich für den Live-Serverkatalog und die Verfügbarkeitsprüfungen. Leserechte genügen.",
+        "api.statusConfigured": "Konfiguriert",
+        "api.statusRequired": "Erforderlich",
+        "general.title": "Allgemein",
+        "general.copy": "Sprache der Oberfläche und Branding.",
+        "general.language": "Sprache",
+        "general.languageHelp": "Englisch ist der Standard. Die gewählte Sprache wird für diese Installation gespeichert.",
+        "general.token": "Hetzner-Cloud-API-Token",
+        "general.tokenHelp": "Öffne dein Projekt in der Hetzner Cloud Console und dann Sicherheit → API-Tokens → API-Token generieren. Leserechte genügen. Kopiere den Token sofort; Hetzner zeigt ihn nur einmal an.",
+        "general.tokenSet": "API-Token konfiguriert. HetznerWatch verwendet den gespeicherten Token weiter; der eigentliche Geheimwert wird nie an diesen Browser zurückgegeben.",
+        "general.tokenMissing": "Kein API-Token konfiguriert. Füge einen Token mit Leserechten ein, um den Katalog zu laden und Verfügbarkeiten abzufragen.",
+        "general.tokenReplacing": "Füge den neuen Token ein. Der bisherige Token bleibt konfiguriert, bis der neue Wert erfolgreich gespeichert wurde.",
+        "general.tokenPlaceholder": "Token mit Leserechten einfügen",
+        "general.replaceToken": "Token ersetzen",
+        "general.cancelTokenReplace": "Abbrechen",
+        "general.logo": "Eigenes Logo per URL",
+        "general.logoHelp": "Leer lassen, um das Heisel-Analytics-Logo beizubehalten. Verwende eine direkt erreichbare HTTP- oder HTTPS-Bild-URL. Beim Laden eines externen Bildes wird die IP-Adresse des Betrachters an dessen Host übermittelt.",
+        "monitoring.title": "Überwachung",
+        "monitoring.pageCopy": "Lege fest, wie oft HetznerWatch die Verfügbarkeit prüft und welche Server-/Standort-Kombinationen im Dashboard erscheinen.",
+        "monitoring.targetsTitle": "Ziele und Intervall",
+        "monitoring.copy": "Wähle das Intervall und alle zu überwachenden Kombinationen aus Servertyp und Standort.",
+        "monitoring.interval": "Abfrageintervall in Sekunden",
+        "monitoring.intervalHelp": "Zulässig sind 10 bis 86400 Sekunden. Ein moderates Intervall reduziert den API-Verkehr.",
+        "monitoring.targetsHelp": "Jede ausgewählte Checkbox erzeugt ein Ziel aus Servertyp und Standort. Der Live-Katalog benötigt einen gültigen Hetzner-Token.",
+        "monitoring.selectAll": "Alle auswählen",
+        "monitoring.clear": "Auswahl leeren",
+        "monitoring.reload": "Katalog neu laden",
+        "monitoring.loading": "Hetzner-Serverkatalog wird geladen …",
+        "monitoring.selectedOne": "1 Ziel ausgewählt",
+        "monitoring.selectedMany": "{count} Ziele ausgewählt",
+        "monitoring.saving": "Überwachung wird gespeichert …",
+        "monitoring.saved": "Überwachung gespeichert: {date}",
+        "ntfy.title": "ntfy-Benachrichtigungen",
+        "ntfy.copy": "Eine Nachricht wird gesendet, wenn ein zuvor nicht verfügbares Ziel wieder verfügbar ist.",
+        "ntfy.enabled": "ntfy aktivieren",
+        "ntfy.enabledCopy": "Automatische Meldungen senden",
+        "ntfy.shortHelp": "Der öffentliche Server und ein merkbares Zufalls-Topic aus Wörtern und Zahlen sind vorkonfiguriert. Abonniere exakt dieses Topic, bevor du Benachrichtigungen aktivierst.",
+        "ntfy.phoneTitle": "Smartphone einrichten",
+        "ntfy.phone1": "Installiere die ntfy-App für Android oder iPhone.",
+        "ntfy.phone2": "Füge in der App ein Topic auf dem öffentlichen Server https://ntfy.sh hinzu.",
+        "ntfy.phone3": "Kopiere das unten erzeugte Topic und abonniere exakt diesen Wert.",
+        "ntfy.phone4": "Aktiviere ntfy hier und sende eine Testnachricht.",
+        "ntfy.phoneNote": "Der öffentliche Server benötigt kein Konto. Behandle das zufällige Topic wie ein Passwort und teile es nicht.",
+        "ntfy.phoneDocs": "Smartphone-Anleitung",
+        "ntfy.newTopic": "Neues Topic",
+        "ntfy.confirmNewTopic": "Neues Topic bestätigen",
+        "ntfy.newTopicConfirm": "Klicke zum Fortfahren auf Neues Topic bestätigen. Aktualisiere danach das Abonnement in jeder ntfy-App.",
+        "ntfy.topicGenerated": "Neues Topic erzeugt. Wird gespeichert …",
+        "ntfy.topicGenerateFailed": "Ein neues Topic konnte nicht erzeugt werden.",
+        "ntfy.copyTopic": "Topic kopieren",
+        "ntfy.topicCopied": "Topic kopiert.",
+        "ntfy.topicCopyFailed": "Das Topic konnte nicht kopiert werden.",
+        "ntfy.server": "Server-URL",
+        "ntfy.serverHelp": "Verwende https://ntfy.sh oder die Root-URL deines selbst gehosteten ntfy-Servers.",
+        "ntfy.topicHelp": "Öffentliche Topics sind nicht zugriffsgeschützt. Jeder mit diesem Wert kann abonnieren oder veröffentlichen; halte das erzeugte Topic daher geheim.",
+        "ntfy.auth": "Authentifizierung",
+        "ntfy.authNone": "Keine",
+        "ntfy.authBasic": "Benutzername und Passwort",
+        "ntfy.authToken": "Zugriffstoken",
+        "ntfy.authHelp": "Öffentliche Topics benötigen meist keine Authentifizierung. Selbst gehostete Server können Basic Auth oder einen Zugriffstoken verlangen.",
+        "ntfy.username": "Benutzername",
+        "ntfy.usernameHelp": "Der auf deinem ntfy-Server konfigurierte Benutzername.",
+        "ntfy.password": "Passwort",
+        "ntfy.passwordHelp": "Das Passwort wird in der lokalen SQLite-Datenbank gespeichert und nie an den Browser zurückgegeben.",
+        "ntfy.passwordSet": "Gespeichert. Leer lassen, um das Passwort beizubehalten.",
+        "ntfy.passwordEmpty": "Passwort für den ntfy-Benutzer.",
+        "ntfy.token": "Zugriffstoken",
+        "ntfy.tokenHelp": "Verwende einen Zugriffstoken deines ntfy-Servers. Er wird lokal gespeichert und nie an den Browser zurückgegeben.",
+        "ntfy.tokenSet": "Gespeichert. Leer lassen, um den Token beizubehalten.",
+        "ntfy.tokenEmpty": "Zugriffstoken des ntfy-Servers.",
+        "ntfy.secretStored": "Gespeichert",
+        "ntfy.dashboard": "Dashboard-Link",
+        "ntfy.dashboardHelp": "Diese URL öffnet sich beim Antippen der Benachrichtigung. Sie muss vom Empfangsgerät erreichbar sein; localhost funktioniert nur auf demselben Gerät.",
+        "ntfy.message": "Nachricht",
+        "ntfy.messageHelp": "Passe den Benachrichtigungstext mit den unterstützten Platzhaltern an.",
+        "ntfy.placeholders": "Platzhalter an der Cursorposition einfügen:",
+        "ntfy.preview": "Vorschau",
+        "ntfy.test": "Testnachricht senden",
+        "ntfy.testing": "ntfy-Verbindung wird getestet …",
+        "ntfy.previewStatus": "verfügbar",
+        "ntfy.previewRecommended": "ja",
+        "instructions.title": "Anleitung",
+        "instructions.copy": "Richte HetznerWatch Schritt für Schritt ein und lerne anschließend, alle Verfügbarkeitsgrafiken zu lesen.",
+        "instructions.toc": "In dieser Anleitung",
+        "instructions.tocStart": "HetznerWatch starten",
+        "instructions.tocToken": "Hetzner-API verbinden",
+        "instructions.tocMonitoring": "Überwachungsziele auswählen",
+        "instructions.tocDashboard": "Dashboard-Zeitverlauf lesen",
+        "instructions.tocLongTerm": "Langzeitgrafiken lesen",
+        "instructions.tocNtfy": "ntfy-Benachrichtigungen einrichten",
+        "instructions.tocOperate": "Installation betreiben und aktualisieren",
+        "instructions.startTitle": "1. HetznerWatch starten",
+        "instructions.startIntro": "Docker Compose startet die Anwendung und ihr dauerhaftes SQLite-Volume. Eine .env-Datei ist nicht erforderlich.",
+        "instructions.start1": "Installiere Docker Desktop oder Docker Engine mit Docker Compose.",
+        "instructions.start2": "Öffne ein Terminal im HetznerWatch-Projektverzeichnis.",
+        "instructions.start3": "Baue und starte den Dienst:",
+        "instructions.start4": "Öffne das lokale Dashboard:",
+        "instructions.tokenTitle": "2. Hetzner-API verbinden",
+        "instructions.tokenIntro": "HetznerWatch benötigt nur einen Token mit Leserechten, um Serverkatalog und Verfügbarkeiten zu laden.",
+        "instructions.token1": "Öffne dein Projekt in der Hetzner Cloud Console.",
+        "instructions.token2": "Öffne Sicherheit → API-Tokens und wähle API-Token generieren.",
+        "instructions.token3": "Wähle Leserechte, erstelle den Token und kopiere ihn sofort.",
+        "instructions.token4": "Öffne in HetznerWatch Einstellungen → Hetzner-Cloud-API-Token und füge den Token ein.",
+        "instructions.token5": "Klicke nach dem Einfügen an eine andere Stelle. Der Status oben bestätigt das automatische Speichern; direkt danach startet die erste Verfügbarkeitsabfrage.",
+        "instructions.tokenNote": "Der Token wird in der lokalen SQLite-Datenbank gespeichert und nie an den Browser zurückgegeben. Ein maskiertes Feld und der grüne Status bestätigen die Konfiguration; verwende Token ersetzen, wenn du ihn ändern möchtest.",
+        "instructions.monitoringTitle": "3. Überwachungsziele auswählen",
+        "instructions.monitoringIntro": "Der separate Tab Überwachung steuert das Abfrageintervall und die im Dashboard gezeigten Server-/Standort-Kombinationen.",
+        "instructions.monitoring1": "Öffne Überwachung.",
+        "instructions.monitoring2": "Lege ein Intervall zwischen 10 und 86400 Sekunden fest.",
+        "instructions.monitoring3": "Lade den Katalog nach dem Hinzufügen oder Ersetzen des Hetzner-Tokens neu.",
+        "instructions.monitoring4": "Wähle alle Servertyp- und Standortpaare aus, die du beobachten möchtest.",
+        "instructions.monitoring5": "Änderungen werden automatisch gespeichert. Warte auf den Status Gespeichert und gehe dann zurück zum Dashboard.",
+        "instructions.monitoringNote": "Eine Checkbox entspricht einem Ziel, zum Beispiel CX23 in fsn1. Die gelbe Kennzeichnung Empfohlen ist Hetzners Standortempfehlung, keine Verfügbarkeitsgarantie.",
+        "instructions.dashboardTitle": "4. Dashboard-Zeitverlauf lesen",
+        "instructions.dashboardIntro": "Das Dashboard zeigt zuerst den aktuellen Zustand und darunter die einzelnen Abfragen.",
+        "instructions.dashboardSummary": "Die Zusammenfassung zeigt Anzahl der Ziele, aktives Intervall und Zeitpunkt der letzten Abfrage.",
+        "instructions.dashboardTarget": "Der Kopf jedes Ziels zeigt Servertyp, Standort, aktuellen Zustand und letzten Zeitstempel.",
+        "instructions.dashboardHistory": "Die Auswahl Verlauf bestimmt, wie viele der letzten Abfragen sichtbar sind.",
+        "instructions.timelineTitle": "So liest du den Box-Zeitverlauf",
+        "instructions.timelineCopy": "Jede Box entspricht einer Abfrage. Die Zeit läuft von der ältesten Abfrage links zur neuesten rechts. Bewege den Mauszeiger auf eine Box oder fokussiere sie, um genaue Zeit, Ergebnis und mögliche HTTP-Fehler zu sehen.",
+        "instructions.timelineExampleTitle": "Beispiel: ausgebucht und anschließend wieder verfügbar",
+        "instructions.timelineExampleAria": "Sechs Abfragen von alt nach neu: verfügbar, nicht verfügbar, nicht verfügbar, Abfragefehler, verfügbar und empfohlen, verfügbar.",
+        "instructions.older": "Älter",
+        "instructions.newer": "Neuer",
+        "instructions.timelineInterpretation": "Im Beispiel ist das Ziel zwei Abfragen lang nicht verfügbar, eine API-Abfrage schlägt fehl und anschließend kehrt das Ziel zurück. Ist ntfy aktiv, löst der Wechsel von nicht verfügbar zu verfügbar eine Benachrichtigung aus.",
+        "instructions.longTitle": "5. Langzeitgrafiken lesen",
+        "instructions.longIntro": "Die Langzeitüberwachung fasst erfolgreiche Messungen in Zeitblöcken zusammen. Mit 24 Stunden, 7, 30 oder 90 Tagen änderst du die Gruppierung.",
+        "instructions.metricsTitle": "Zusammenfassungswerte und dünne Linien",
+        "instructions.metrics1": "Server & Standorte zählt die im Bereich enthaltenen Katalogkombinationen.",
+        "instructions.metrics2": "Datenabdeckung zeigt, wie viel des ausgewählten Ziel-/Zeitrasters Messwerte enthält.",
+        "instructions.metrics3": "Historisch verfügbar ist der Verfügbarkeitsanteil aller erfolgreichen Abfragen.",
+        "instructions.metrics4": "Aktuell verfügbar vergleicht die jetzt verfügbaren mit allen beobachteten Zielen.",
+        "instructions.metricExampleTitle": "Beispiel: ein verbesserter Kennzahlenverlauf",
+        "instructions.metricExampleAria": "Eine schwankende und anschließend steigende Linie von einem älteren niedrigen zu einem neueren hohen Wert.",
+        "instructions.metricInterpretation": "Lies die dünne Linie von links nach rechts. Eine steigende Linie bedeutet, dass die angezeigte Kennzahl zunimmt; eine Unterbrechung steht für einen Zeitblock ohne nutzbare Messung. Die große Zahl bleibt der maßgebliche Wert.",
+        "instructions.barsTitle": "Verfügbarkeitsbalken je Standort",
+        "instructions.barsCopy": "Jeder Balken entspricht einem Zeitblock. Seine Höhe zeigt den Anteil erfolgreicher Abfragen, bei denen der Server an diesem Standort verfügbar war.",
+        "instructions.barsExampleTitle": "Beispiel: wechselnde Verfügbarkeit nach Zeitblock",
+        "instructions.barsExampleAria": "Sechs Zeitblöcke von alt nach neu: 100 Prozent, 75 Prozent, 0 Prozent, keine Daten, 50 Prozent und 100 Prozent Verfügbarkeit.",
+        "instructions.barsInterpretation": "Ein hoher grüner Balken bedeutet hohe Verfügbarkeit, eine rote Grundlinie 0 % und eine graue Grundlinie keine Daten. Die Bezeichnungen Oft, Zeitweise, Selten und Nie fassen den Prozentwert des gesamten gewählten Zeitraums zusammen.",
+        "instructions.longCaution": "Langzeitwerte beschreiben nur vergangene Beobachtungen. Sie garantieren nicht, dass Hetzner beim Bestellen Kapazität bereitstellt.",
+        "instructions.ntfyTitle": "6. ntfy-Benachrichtigungen einrichten",
+        "instructions.ntfyIntro": "HetznerWatch konfiguriert den öffentlichen ntfy-Server und ein zufälliges Topic vor. Benachrichtigungen bleiben deaktiviert, bis dein Smartphone das Topic abonniert hat.",
+        "instructions.ntfy1": "Installiere die ntfy-App auf Android oder iPhone.",
+        "instructions.ntfy2": "Kopiere unter Einstellungen das erzeugte Topic, das mit hetznerwatch_ beginnt.",
+        "instructions.ntfy3": "Füge in der App ein Abonnement auf https://ntfy.sh hinzu und setze exakt dieses Topic ein.",
+        "instructions.ntfy4": "Aktiviere ntfy in HetznerWatch. Die Änderung wird automatisch gespeichert.",
+        "instructions.ntfy5": "Wähle Testnachricht senden und prüfe, ob sie auf dem Smartphone ankommt.",
+        "instructions.ntfyNote": "Jeder, der ein öffentliches Topic kennt, kann es lesen oder dort veröffentlichen. Halte das erzeugte Topic geheim. Auch der Dashboard-Link muss vom Smartphone erreichbar sein.",
+        "instructions.operateTitle": "7. HetznerWatch betreiben und aktualisieren",
+        "instructions.logs": "Verfolge Laufzeitmeldungen mit",
+        "instructions.restart": "Starte den Dienst neu mit",
+        "instructions.update": "Baue nach dem Abrufen eines Updates neu mit",
+        "instructions.data": "Einstellungen, Geheimnisse und Verlauf liegen in der SQLite-Datenbank im benannten Docker-Volume.",
+        "instructions.security": "Sichere das Volume vor einem Austausch der Installation und schütze das Dashboard, bevor du es in einem Netzwerk freigibst.",
+        "help.information": "Information"
+      }
+    };
+
+    function t(key, values = {}) {
+      const language = document.documentElement.lang === "de" ? "de" : "en";
+      const template = TRANSLATIONS[language][key] ?? TRANSLATIONS.en[key] ?? key;
+      return template.replace(/\{([a-zA-Z]+)\}/g, (match, name) =>
+        Object.hasOwn(values, name) ? String(values[name]) : match,
+      );
+    }
+
+    function applyLanguage(language) {
+      const selected = language === "de" ? "de" : "en";
+      state.language = selected;
+      document.documentElement.lang = selected;
+      document.title = t("meta.title");
+      for (const element of document.querySelectorAll("[data-i18n]")) {
+        element.textContent = t(element.dataset.i18n);
+      }
+      for (const element of document.querySelectorAll("[data-i18n-aria]")) {
+        element.setAttribute("aria-label", t(element.dataset.i18nAria));
+      }
+      for (const button of document.querySelectorAll(".info-button")) {
+        button.setAttribute("aria-label", t("help.information"));
+      }
+      for (const link of document.querySelectorAll("[data-hetzner-doc]")) {
+        link.href = selected === "de"
+          ? "https://docs.hetzner.com/de/cloud/api/getting-started/generating-api-token/"
+          : "https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/";
+      }
+      const topicButton = document.querySelector("#generateNtfyTopic");
+      if (topicButton?.dataset.confirming === "true") {
+        topicButton.querySelector("span").textContent = t("ntfy.confirmNewTopic");
+      }
+    }
+
     const elements = {
       connectionDot: document.querySelector("#connectionDot"),
       connectionLabel: document.querySelector("#connectionLabel"),
+      setupBanner: document.querySelector("#setupBanner"),
+      customLogo: document.querySelector("#customLogo"),
       historyLimit: document.querySelector("#historyLimit"),
       monitoringToggle: document.querySelector("#monitoringToggle"),
       refreshButton: document.querySelector("#refreshButton"),
@@ -1545,7 +2863,18 @@
       longTermCatalog: document.querySelector("#longTermCatalog"),
       pageTabs: Array.from(document.querySelectorAll("[data-page-target]")),
       pageViews: Array.from(document.querySelectorAll("[data-page]")),
+      monitoringForm: document.querySelector("#monitoringForm"),
       settingsForm: document.querySelector("#settingsForm"),
+      languageInput: document.querySelector("#languageInput"),
+      apiAccessPanel: document.querySelector("#apiAccessPanel"),
+      hcloudToken: document.querySelector("#hcloudToken"),
+      hcloudTokenShell: document.querySelector("#hcloudTokenShell"),
+      hcloudTokenCheck: document.querySelector("#hcloudTokenCheck"),
+      hcloudTokenState: document.querySelector("#hcloudTokenState"),
+      hcloudTokenStateText: document.querySelector("#hcloudTokenStateText"),
+      hcloudTokenBadge: document.querySelector("#hcloudTokenBadge"),
+      replaceHcloudToken: document.querySelector("#replaceHcloudToken"),
+      customLogoUrl: document.querySelector("#customLogoUrl"),
       pollIntervalInput: document.querySelector("#pollIntervalInput"),
       selectedTargetCount: document.querySelector("#selectedTargetCount"),
       catalogStatus: document.querySelector("#catalogStatus"),
@@ -1556,10 +2885,14 @@
       ntfyEnabled: document.querySelector("#ntfyEnabled"),
       ntfyDomain: document.querySelector("#ntfyDomain"),
       ntfyTopic: document.querySelector("#ntfyTopic"),
+      generateNtfyTopic: document.querySelector("#generateNtfyTopic"),
+      copyNtfyTopic: document.querySelector("#copyNtfyTopic"),
+      ntfyTopicCopyStatus: document.querySelector("#ntfyTopicCopyStatus"),
       ntfyAuthMode: document.querySelector("#ntfyAuthMode"),
       ntfyUsername: document.querySelector("#ntfyUsername"),
       ntfyPassword: document.querySelector("#ntfyPassword"),
       ntfyToken: document.querySelector("#ntfyToken"),
+      ntfyDashboardUrl: document.querySelector("#ntfyDashboardUrl"),
       ntfyUsernameField: document.querySelector("#ntfyUsernameField"),
       ntfyPasswordField: document.querySelector("#ntfyPasswordField"),
       ntfyTokenField: document.querySelector("#ntfyTokenField"),
@@ -1568,9 +2901,10 @@
       ntfyMessage: document.querySelector("#ntfyMessage"),
       placeholderList: document.querySelector("#placeholderList"),
       messagePreview: document.querySelector("#messagePreview"),
+      monitoringStatus: document.querySelector("#monitoringStatus"),
       settingsStatus: document.querySelector("#settingsStatus"),
+      ntfyTestStatus: document.querySelector("#ntfyTestStatus"),
       testNtfyButton: document.querySelector("#testNtfyButton"),
-      saveSettingsButton: document.querySelector("#saveSettingsButton"),
     };
 
     function readPreference(key) {
@@ -1609,6 +2943,16 @@
       passwordSet: false,
       tokenSet: false,
       placeholders: ["checked_at", "location", "recommended", "server_type", "status"],
+      language: "en",
+      hcloudTokenSet: false,
+      hcloudTokenReplaceMode: false,
+      dashboardPayload: null,
+      longTermPayload: null,
+      settingsPayload: null,
+      autoSaveTimers: { settings: null, monitoring: null },
+      autoSaveVersions: { settings: 0, monitoring: 0 },
+      ntfyTopicConfirmationTimer: null,
+      saveQueue: Promise.resolve(),
     };
 
     elements.historyLimit.value = String(state.limit);
@@ -1624,39 +2968,37 @@
     }
 
     function formatDateTime(value) {
-      if (!value) return "Noch keine Abfrage";
+      if (!value) return t("time.noCheck");
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return String(value);
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `${hours}:${minutes} ${day}.${month}.${year}`;
+      return new Intl.DateTimeFormat(
+        state.language === "de" ? "de-DE" : "en-GB",
+        { dateStyle: "short", timeStyle: "short" },
+      ).format(date);
     }
 
     function formatInterval(seconds) {
-      if (seconds < 60) return `${seconds} Sekunden`;
-      if (seconds === 60) return "1 Minute";
+      if (seconds < 60) return t("time.seconds", { count: seconds });
+      if (seconds === 60) return t("time.minute");
       if (seconds % 3600 === 0) {
         const hours = seconds / 3600;
-        return hours === 1 ? "1 Stunde" : `${hours} Stunden`;
+        return hours === 1 ? t("time.hour") : t("time.hours", { count: hours });
       }
-      if (seconds % 60 === 0) return `${seconds / 60} Minuten`;
-      return `${seconds} Sekunden`;
+      if (seconds % 60 === 0) return t("time.minutes", { count: seconds / 60 });
+      return t("time.seconds", { count: seconds });
     }
 
     function statusFor(check) {
-      if (!check) return { css: "error", label: "Noch keine Daten" };
-      if (!check.request_success) return { css: "error", label: "Abfragefehler" };
-      if (check.available) return { css: "available", label: "Verfügbar" };
-      return { css: "unavailable", label: "Nicht verfügbar" };
+      if (!check) return { css: "error", label: t("status.noData") };
+      if (!check.request_success) return { css: "error", label: t("status.checkError") };
+      if (check.available) return { css: "available", label: t("status.available") };
+      return { css: "unavailable", label: t("status.unavailable") };
     }
 
     function describeCheck(check) {
       const status = statusFor(check).label;
       const time = formatDateTime(check.checked_at);
-      const recommendation = check.recommended ? " · von Hetzner empfohlen" : "";
+      const recommendation = check.recommended ? ` · ${t("target.hetznerRecommended")}` : "";
       const http = check.http_status_code ? ` · HTTP ${check.http_status_code}` : "";
       const error = check.error_message ? ` · ${check.error_message}` : "";
       return `${time} · ${status}${recommendation}${http}${error}`;
@@ -1669,7 +3011,7 @@
       const successful = checks.filter((check) => check.request_success);
       const availableCount = successful.filter((check) => check.available).length;
       const recommendation = latest?.recommended
-        ? '<span class="recommendation">Empfohlen</span>'
+        ? `<span class="recommendation">${t("status.recommended")}</span>`
         : "";
 
       const card = document.createElement("article");
@@ -1680,37 +3022,37 @@
             <span class="status-orb ${status.css}" aria-hidden="true"></span>
             <div>
               <h2 class="target-name">${escapeHtml(target.server_type)}</h2>
-              <div class="target-meta">Standort ${escapeHtml(target.location)}</div>
+              <div class="target-meta">${escapeHtml(t("target.location", { location: target.location }))}</div>
             </div>
           </div>
           <div class="target-state">
             ${recommendation}
             <div>
               <div class="state-label">${status.label}</div>
-              <div class="state-time">${latest ? formatDateTime(latest.checked_at) : "Warte auf erste Abfrage"}</div>
+              <div class="state-time">${latest ? formatDateTime(latest.checked_at) : t("target.waiting")}</div>
             </div>
           </div>
         </div>
         <div class="timeline-section">
           <div class="timeline-topline">
-            <div class="timeline-title">Zeitverlauf</div>
-            <div class="timeline-summary">${availableCount} von ${successful.length} erfolgreichen Abfragen verfügbar</div>
+            <div class="timeline-title">${t("target.timeline")}</div>
+            <div class="timeline-summary">${escapeHtml(t("target.summary", { available: availableCount, total: successful.length }))}</div>
           </div>
           <div class="timeline-viewport">
-            <div class="box-strip" role="group" aria-label="Abfrageverlauf"></div>
+            <div class="box-strip" role="group" aria-label="${escapeHtml(t("target.historyLabel"))}"></div>
           </div>
           <div class="timeline-axis">
             <span>${checks.length ? formatDateTime(checks[0].checked_at) : "–"}</span>
-            <span>${checks.length} Abfragen</span>
+            <span>${escapeHtml(t("target.checks", { count: checks.length }))}</span>
             <span>${latest ? formatDateTime(latest.checked_at) : "–"}</span>
           </div>
-          <div class="check-inspector">${latest ? escapeHtml(describeCheck(latest)) : "Noch keine Daten gespeichert."}</div>
+          <div class="check-inspector">${latest ? escapeHtml(describeCheck(latest)) : t("target.noStored")}</div>
         </div>
       `;
 
       const strip = card.querySelector(".box-strip");
       const inspector = card.querySelector(".check-inspector");
-      const latestDescription = latest ? describeCheck(latest) : "Noch keine Daten gespeichert.";
+      const latestDescription = latest ? describeCheck(latest) : t("target.noStored");
 
       for (const check of checks) {
         const checkStatus = statusFor(check);
@@ -1728,7 +3070,7 @@
       }
 
       if (!checks.length) {
-        strip.innerHTML = '<span class="target-meta">Die erste Abfrage läuft in Kürze.</span>';
+        strip.innerHTML = `<span class="target-meta">${t("target.firstSoon")}</span>`;
       }
 
       return card;
@@ -1749,6 +3091,7 @@
     }
 
     function renderDashboard(payload) {
+      state.dashboardPayload = payload;
       updateMonitoringControl(payload.monitoring_enabled);
       state.pollIntervalSeconds = payload.poll_interval_seconds;
       elements.targetCount.textContent = payload.targets.length;
@@ -1756,7 +3099,7 @@
       elements.pollInterval.classList.toggle("is-paused", !payload.monitoring_enabled);
       elements.pollInterval.textContent = payload.monitoring_enabled
         ? formattedInterval
-        : `Pausiert · ${formattedInterval}`;
+        : `${t("connection.paused")} · ${formattedInterval}`;
 
       const latestDates = payload.targets
         .flatMap((target) => target.checks)
@@ -1765,17 +3108,17 @@
         .sort();
       elements.lastChecked.textContent = latestDates.length
         ? formatDateTime(latestDates.at(-1))
-        : "Noch keine Daten";
+        : t("status.noData");
 
       elements.targetList.innerHTML = "";
       if (!payload.targets.length) {
         elements.targetList.innerHTML = `
           <div class="empty">
-            <span>Es sind keine Überwachungsziele konfiguriert.</span>
-            <button class="button" type="button" data-open-settings>Ziele auswählen</button>
+            <span>${t("dashboard.noTargets")}</span>
+            <button class="button" type="button" data-open-settings>${t("dashboard.selectTargets")}</button>
           </div>
         `;
-        elements.targetList.querySelector("[data-open-settings]").addEventListener("click", () => activatePage("settings", true));
+        elements.targetList.querySelector("[data-open-settings]").addEventListener("click", () => activatePage("monitoring", true));
         return;
       }
 
@@ -1791,8 +3134,8 @@
       elements.monitoringToggle.setAttribute("aria-pressed", String(enabled));
       elements.monitoringToggle.classList.toggle("primary", !enabled);
       elements.monitoringToggle.querySelector("span").textContent = enabled
-        ? "Abfragen pausieren"
-        : "Abfragen starten";
+        ? t("monitor.pause")
+        : t("monitor.start");
     }
 
     function setConnection(ok, label, paused = false) {
@@ -1819,7 +3162,7 @@
         updateMonitoringControl(result.monitoring_enabled);
         setConnection(
           true,
-          result.monitoring_enabled ? "Monitor verbunden" : "Abfragen pausiert",
+          result.monitoring_enabled ? t("connection.connected") : t("connection.paused"),
           !result.monitoring_enabled,
         );
         await refreshDashboard();
@@ -1849,15 +3192,15 @@
         state.longTermLoadedRange = null;
         setConnection(
           true,
-          payload.monitoring_enabled ? "Monitor verbunden" : "Abfragen pausiert",
+          payload.monitoring_enabled ? t("connection.connected") : t("connection.paused"),
           !payload.monitoring_enabled,
         );
       } catch (error) {
-        setConnection(false, "Verbindung unterbrochen");
+        setConnection(false, t("connection.interrupted"));
         elements.targetList.innerHTML = `
           <div class="global-error" role="alert">
-            <span>${escapeHtml(error.message)} Neuer Versuch folgt automatisch.</span>
-            <button class="button" type="button" data-retry>Jetzt erneut versuchen</button>
+            <span>${escapeHtml(error.message)} ${t("dashboard.retryAuto")}</span>
+            <button class="button" type="button" data-retry>${t("dashboard.retryNow")}</button>
           </div>
         `;
         elements.targetList.querySelector("[data-retry]").addEventListener("click", refreshDashboard);
@@ -1911,17 +3254,17 @@
 
     function locationBadge(location) {
       if (location.available === true) {
-        return '<span class="status-badge available">Verfügbar</span>';
+        return `<span class="status-badge available">${t("status.available")}</span>`;
       }
       if (location.available === false) {
-        return '<span class="status-badge unavailable">Ausgebucht</span>';
+        return `<span class="status-badge unavailable">${t("status.soldOut")}</span>`;
       }
       return "";
     }
 
     function categoryLabel(category) {
       const rawCategory = String(category || "").trim();
-      if (!rawCategory) return "Weitere Servertypen";
+      if (!rawCategory) return t("catalog.other");
 
       const normalized = rawCategory.toLowerCase().replaceAll("_", "-");
       if (["shared", "shared-vcpu", "shared-vcpu-plans"].includes(normalized)) {
@@ -1936,35 +3279,35 @@
 
     function formatPercent(value) {
       if (value === null || value === undefined) return "–";
-      return `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(value)} %`;
+      return `${new Intl.NumberFormat(state.language === "de" ? "de-DE" : "en-GB", { maximumFractionDigits: 1 }).format(value)} %`;
     }
 
     function formatCurrencyAmount(amount, currency) {
       let formattedAmount;
       try {
         formattedAmount = currency
-          ? new Intl.NumberFormat("de-DE", {
+          ? new Intl.NumberFormat(state.language === "de" ? "de-DE" : "en-GB", {
               style: "currency",
               currency,
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             }).format(amount)
-          : new Intl.NumberFormat("de-DE", {
+          : new Intl.NumberFormat(state.language === "de" ? "de-DE" : "en-GB", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             }).format(amount);
       } catch (_error) {
-        formattedAmount = `${new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency}`.trim();
+        formattedAmount = `${new Intl.NumberFormat(state.language === "de" ? "de-DE" : "en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency}`.trim();
       }
       return formattedAmount;
     }
 
     function formatMonthlyGrossPrice(location) {
       const amount = Number(location.price_monthly_gross);
-      if (!Number.isFinite(amount)) return "Preis nicht verfügbar";
+      if (!Number.isFinite(amount)) return t("price.unavailable");
       const currency = String(location.price_currency || "").toUpperCase();
       const formattedAmount = formatCurrencyAmount(amount, currency);
-      return `${formattedAmount} brutto / Monat`;
+      return t("price.monthly", { price: formattedAmount });
     }
 
     function formatGrossPriceRange(locations) {
@@ -1974,54 +3317,57 @@
           currency: String(location.price_currency || "").toUpperCase(),
         }))
         .filter((price) => Number.isFinite(price.amount));
-      if (!pricedLocations.length) return "Preis nicht verfügbar";
+      if (!pricedLocations.length) return t("price.unavailable");
       const amounts = pricedLocations.map((price) => price.amount);
       const minimum = Math.min(...amounts);
       const maximum = Math.max(...amounts);
       const currency = pricedLocations.find((price) => price.currency)?.currency || "";
       if (minimum === maximum) {
-        return `${formatCurrencyAmount(minimum, currency)} brutto / Monat`;
+        return t("price.monthly", { price: formatCurrencyAmount(minimum, currency) });
       }
-      return `Von ${formatCurrencyAmount(minimum, currency)} bis ${formatCurrencyAmount(maximum, currency)} brutto / Monat`;
+      return t("price.range", {
+        minimum: formatCurrencyAmount(minimum, currency),
+        maximum: formatCurrencyAmount(maximum, currency),
+      });
     }
 
     function compactAvailabilityState(location) {
       if (location.current_available === true) {
-        return { css: "available", label: "Verfügbar" };
+        return { css: "available", label: t("status.available") };
       }
       if (location.current_available === false) {
-        return { css: "unavailable", label: "Ausgebucht" };
+        return { css: "unavailable", label: t("status.soldOut") };
       }
-      return { css: "", label: "Status offen" };
+      return { css: "", label: t("status.open") };
     }
 
     function availabilityAssessment(value) {
-      if (value === null || value === undefined) return "Noch keine Daten";
-      if (value >= 75) return "Oft verfügbar";
-      if (value >= 25) return "Zeitweise verfügbar";
-      if (value > 0) return "Selten verfügbar";
-      return "Im Zeitraum nie verfügbar";
+      if (value === null || value === undefined) return t("status.noData");
+      if (value >= 75) return t("availability.often");
+      if (value >= 25) return t("availability.sometimes");
+      if (value > 0) return t("availability.rarely");
+      return t("availability.never");
     }
 
     function currentAvailabilityBadge(location) {
       if (location.current_available === true) {
-        return '<span class="status-badge available">Aktuell verfügbar</span>';
+        return `<span class="status-badge available">${t("availability.current")}</span>`;
       }
       if (location.current_available === false) {
-        return '<span class="status-badge unavailable">Aktuell ausgebucht</span>';
+        return `<span class="status-badge unavailable">${t("availability.currentSoldOut")}</span>`;
       }
-      return '<span class="status-badge">Aktueller Status offen</span>';
+      return `<span class="status-badge">${t("availability.currentOpen")}</span>`;
     }
 
     function renderAvailabilityChart(series, locationName) {
       const values = series.filter((point) => point.availability_percent !== null);
       const chartLabel = values.length
-        ? `Historischer Verfügbarkeitsverlauf für ${locationName}`
-        : `Noch kein historischer Verfügbarkeitsverlauf für ${locationName}`;
+        ? t("long.chart", { location: locationName })
+        : t("long.chartEmpty", { location: locationName });
       const bars = series.map((point) => {
         const value = point.availability_percent;
         if (value === null) {
-          return `<span class="availability-bar is-empty" title="${escapeHtml(formatDateTime(point.bucket_start))}: keine Daten"></span>`;
+          return `<span class="availability-bar is-empty" title="${escapeHtml(formatDateTime(point.bucket_start))}: ${t("long.noDataPoint")}"></span>`;
         }
         const normalized = Math.max(0, Math.min(100, Number(value)));
         const cssClass = normalized === 0 ? " is-zero" : "";
@@ -2149,6 +3495,7 @@
     }
 
     function renderLongTerm(payload) {
+      state.longTermPayload = payload;
       const expandedServers = new Set(
         Array.from(elements.longTermCatalog.querySelectorAll(".long-term-card[open]"))
           .map((card) => card.dataset.serverType),
@@ -2162,24 +3509,36 @@
           ),
         ),
       );
-      elements.longTermTargetCount.textContent = `${summary.targets} Server & ${uniqueLocations.size} ${uniqueLocations.size === 1 ? "Standort" : "Standorte"}`;
+      elements.longTermTargetCount.textContent = t("long.summaryTargets", {
+        servers: summary.targets,
+        locations: uniqueLocations.size,
+        locationWord: uniqueLocations.size === 1
+          ? (state.language === "de" ? "Standort" : "location")
+          : (state.language === "de" ? "Standorte" : "locations"),
+      });
       elements.longTermDataCount.textContent = formatPercent(timeline.coveragePercent);
       elements.longTermAvailability.textContent = formatPercent(summary.availability_percent);
-      elements.longTermCurrentCount.textContent = `${summary.currently_available} von ${summary.targets}`;
+      elements.longTermCurrentCount.textContent = t("long.of", {
+        current: summary.currently_available,
+        total: summary.targets,
+      });
       renderMetricGraphics(payload, timeline);
       elements.longTermStatus.textContent = summary.total_checks
-        ? `${new Intl.NumberFormat("de-DE").format(summary.total_checks)} erfolgreiche Server-/Standortmessungen · Diagrammpunkt je ${formatInterval(payload.range.bucket_hours * 3600)}`
-        : "Die Langzeithistorie beginnt mit dem ersten erfolgreichen Abruf nach dieser Aktualisierung.";
+        ? t("long.measurements", {
+            count: new Intl.NumberFormat(state.language === "de" ? "de-DE" : "en-GB").format(summary.total_checks),
+            interval: formatInterval(payload.range.bucket_hours * 3600),
+          })
+        : t("long.starts");
 
       elements.longTermCatalog.innerHTML = "";
       if (!payload.categories.length) {
         elements.longTermCatalog.innerHTML = `
           <div class="empty">
-            <span>Noch kein Serverkatalog verfügbar.</span>
-            <button class="button" type="button" data-open-settings>Katalog unter Einstellungen laden</button>
+            <span>${t("long.noCatalog")}</span>
+            <button class="button" type="button" data-open-settings>${t("long.loadCatalog")}</button>
           </div>
         `;
-        elements.longTermCatalog.querySelector("[data-open-settings]").addEventListener("click", () => activatePage("settings", true));
+        elements.longTermCatalog.querySelector("[data-open-settings]").addEventListener("click", () => activatePage("monitoring", true));
         elements.longTermCatalog.setAttribute("aria-busy", "false");
         return;
       }
@@ -2196,7 +3555,7 @@
         categorySection.innerHTML = `
           <div class="server-category-heading">
             <h3 id="${headingId}">${escapeHtml(categoryLabel(category.category))}</h3>
-            <span class="server-category-count">${category.server_types.length} ${category.server_types.length === 1 ? "Servertyp" : "Servertypen"} · ${targetCount} Standorte</span>
+            <span class="server-category-count">${category.server_types.length} ${category.server_types.length === 1 ? t("long.serverType") : t("long.serverTypes")} · ${t("long.locations", { count: targetCount })}</span>
           </div>
           <div class="long-term-category-grid"></div>
         `;
@@ -2242,16 +3601,16 @@
 
             const row = document.createElement("section");
             row.className = "long-term-location";
-            const checks = new Intl.NumberFormat("de-DE").format(location.total_checks);
+            const checks = new Intl.NumberFormat(state.language === "de" ? "de-DE" : "en-GB").format(location.total_checks);
             const lastAvailable = location.last_available_at
-              ? `Zuletzt verfügbar: ${formatDateTime(location.last_available_at)}`
-              : "Im Zeitraum nicht verfügbar beobachtet";
+              ? t("long.lastAvailable", { date: formatDateTime(location.last_available_at) })
+              : t("long.notObserved");
             row.innerHTML = `
               <div class="availability-topline">
                 <div class="availability-location">
                   <span class="availability-location-name">${escapeHtml(location.name)}</span>
                   ${currentAvailabilityBadge(location)}
-                  ${location.current_recommended ? '<span class="recommendation">Empfohlen</span>' : ""}
+                  ${location.current_recommended ? `<span class="recommendation">${t("status.recommended")}</span>` : ""}
                 </div>
                 <div class="availability-value">
                   <div class="availability-percent">${escapeHtml(formatPercent(location.availability_percent))}</div>
@@ -2261,7 +3620,7 @@
               </div>
               ${renderAvailabilityChart(location.series, location.name)}
               <div class="availability-meta">
-                <span>${checks} erfolgreiche Messungen</span>
+                <span>${t("long.successfulMeasurements", { count: checks })}</span>
                 <span>${escapeHtml(lastAvailable)}</span>
               </div>
             `;
@@ -2285,7 +3644,7 @@
       elements.refreshLongTerm.classList.add("is-loading");
       elements.longTermCatalog.setAttribute("aria-busy", "true");
       if (!state.longTermLoadedRange) {
-        elements.longTermCatalog.innerHTML = '<div class="empty"><span class="spinner" aria-hidden="true"></span><span>Langzeitdaten werden geladen …</span></div>';
+        elements.longTermCatalog.innerHTML = `<div class="empty"><span class="spinner" aria-hidden="true"></span><span>${t("long.loading")}</span></div>`;
       }
 
       try {
@@ -2299,7 +3658,7 @@
         elements.longTermCatalog.innerHTML = `
           <div class="global-error" role="alert">
             <span>${escapeHtml(error.message)}</span>
-            <button class="button" type="button" data-retry>Erneut versuchen</button>
+            <button class="button" type="button" data-retry>${t("common.retry")}</button>
           </div>
         `;
         elements.longTermCatalog.querySelector("[data-retry]").addEventListener("click", () => loadLongTerm(true));
@@ -2320,8 +3679,8 @@
       if (!catalog.length) {
         elements.serverCatalog.innerHTML = `
           <div class="empty">
-            <span>Kein Serverkatalog verfügbar.</span>
-            <button class="button" type="button" data-reload>Katalog erneut laden</button>
+            <span>${t("catalog.empty")}</span>
+            <button class="button" type="button" data-reload>${t("catalog.reload")}</button>
           </div>
         `;
         elements.serverCatalog.querySelector("[data-reload]").addEventListener("click", () => loadSettings(true));
@@ -2338,7 +3697,7 @@
       }
 
       const sortedCategories = Array.from(categories.entries()).sort((left, right) =>
-        categoryLabel(left[0]).localeCompare(categoryLabel(right[0]), "de"),
+        categoryLabel(left[0]).localeCompare(categoryLabel(right[0]), state.language),
       );
 
       for (const [category, serverTypes] of sortedCategories) {
@@ -2350,7 +3709,7 @@
         categorySection.innerHTML = `
           <div class="server-category-heading">
             <h4 id="${categoryHeadingId}">${escapeHtml(categoryName)}</h4>
-            <span class="server-category-count">${serverTypes.length} ${serverTypes.length === 1 ? "Servertyp" : "Servertypen"}</span>
+            <span class="server-category-count">${serverTypes.length} ${serverTypes.length === 1 ? t("long.serverType") : t("long.serverTypes")}</span>
           </div>
           <div class="server-category-grid"></div>
         `;
@@ -2378,7 +3737,7 @@
               <span class="location-option-main">
                 <input type="checkbox" data-server-type="${escapeHtml(serverType.name)}" data-location="${escapeHtml(location.name)}" ${selected.has(key) ? "checked" : ""}>
                 <span class="location-name">${escapeHtml(location.name)}</span>
-                ${location.recommended ? '<span class="recommendation" title="Von Hetzner für diesen Servertyp empfohlener Standort.">Empfohlen</span>' : ""}
+                ${location.recommended ? `<span class="recommendation" title="${t("catalog.recommendedTitle")}">${t("status.recommended")}</span>` : ""}
               </span>
               ${locationBadge(location)}
             `;
@@ -2400,7 +3759,9 @@
 
     function updateSelectedTargetCount() {
       const count = selectedTargetInputs().filter((input) => input.checked).length;
-      elements.selectedTargetCount.textContent = `${count} ${count === 1 ? "Ziel" : "Ziele"} ausgewählt`;
+      elements.selectedTargetCount.textContent = count === 1
+        ? t("monitoring.selectedOne")
+        : t("monitoring.selectedMany", { count });
     }
 
     function updateAuthFields() {
@@ -2416,9 +3777,9 @@
       const values = {
         server_type: "CX23",
         location: "fsn1",
-        status: "verfügbar",
-        checked_at: "15:00 21.03.2025",
-        recommended: "ja",
+        status: t("ntfy.previewStatus"),
+        checked_at: formatDateTime("2025-03-21T15:00:00Z"),
+        recommended: t("ntfy.previewRecommended"),
       };
       elements.messagePreview.textContent = elements.ntfyMessage.value.replace(
         /\{([a-z_]+)\}/g,
@@ -2440,17 +3801,128 @@
           elements.ntfyMessage.setRangeText(token, start, end, "end");
           elements.ntfyMessage.focus();
           updateMessagePreview();
+          scheduleAutoSave("settings");
         });
         elements.placeholderList.appendChild(button);
       }
     }
 
+    function setFormStatus(element, message, type = "") {
+      const label = element.querySelector("[data-autosave-label]");
+      if (label) label.textContent = message;
+      else element.textContent = message;
+      element.className = `autosave-status${type ? ` ${type}` : ""}`;
+    }
+
     function setSettingsStatus(message, type = "") {
-      elements.settingsStatus.textContent = message;
-      elements.settingsStatus.className = `form-status${type ? ` ${type}` : ""}`;
+      setFormStatus(elements.settingsStatus, message, type);
+    }
+
+    function setMonitoringStatus(message, type = "") {
+      setFormStatus(elements.monitoringStatus, message, type);
+    }
+
+    function setNtfyTestStatus(message, type = "") {
+      elements.ntfyTestStatus.textContent = message;
+      elements.ntfyTestStatus.className = `form-status${type ? ` ${type}` : ""}`;
+    }
+
+    function applyLogo(url) {
+      const customUrl = String(url || "").trim();
+      const defaultLogos = document.querySelectorAll(".heisel-logo-on-light, .heisel-logo-on-dark");
+      if (!customUrl) {
+        elements.customLogo.hidden = true;
+        elements.customLogo.removeAttribute("src");
+        for (const logo of defaultLogos) logo.hidden = false;
+        return;
+      }
+      for (const logo of defaultLogos) logo.hidden = true;
+      elements.customLogo.hidden = false;
+      elements.customLogo.src = customUrl;
+      elements.customLogo.onerror = () => {
+        elements.customLogo.hidden = true;
+        for (const logo of defaultLogos) logo.hidden = false;
+      };
+    }
+
+    function updateHcloudTokenStatus() {
+      const configured = state.hcloudTokenSet;
+      const replacing = configured && state.hcloudTokenReplaceMode;
+      const showingStoredToken = configured && !replacing;
+
+      elements.hcloudToken.readOnly = showingStoredToken;
+      elements.hcloudToken.placeholder = showingStoredToken
+        ? "••••••••••••••••••••"
+        : t("general.tokenPlaceholder");
+      elements.hcloudTokenShell.classList.toggle("is-configured", showingStoredToken);
+      elements.hcloudTokenCheck.hidden = !showingStoredToken;
+      elements.replaceHcloudToken.hidden = !configured;
+      elements.replaceHcloudToken.querySelector("span").textContent = replacing
+        ? t("general.cancelTokenReplace")
+        : t("general.replaceToken");
+      elements.hcloudTokenStateText.textContent = replacing
+        ? t("general.tokenReplacing")
+        : configured
+          ? t("general.tokenSet")
+          : t("general.tokenMissing");
+      elements.hcloudTokenState.className = `credential-state ${
+        replacing ? "is-replacing" : configured ? "is-configured" : "is-required"
+      }`;
+      elements.hcloudTokenBadge.textContent = state.hcloudTokenSet
+        ? t("api.statusConfigured")
+        : t("api.statusRequired");
+      elements.hcloudTokenBadge.className = `settings-panel-status ${
+        state.hcloudTokenSet ? "is-configured" : "is-required"
+      }`;
+      elements.apiAccessPanel.classList.toggle("is-configured", configured);
+    }
+
+    function toggleHcloudTokenReplacement() {
+      state.hcloudTokenReplaceMode = !state.hcloudTokenReplaceMode;
+      elements.hcloudToken.value = "";
+      updateHcloudTokenStatus();
+      if (state.hcloudTokenReplaceMode) elements.hcloudToken.focus();
+    }
+
+    function refreshLocalizedViews() {
+      updateThemeButton();
+      updateMonitoringControl(state.monitoringEnabled);
+      updateHcloudTokenStatus();
+      updateMessagePreview();
+      updateSelectedTargetCount();
+      if (state.dashboardPayload) renderDashboard(state.dashboardPayload);
+      if (state.longTermPayload) renderLongTerm(state.longTermPayload);
+      if (state.settingsPayload) {
+        const catalog = state.settingsPayload.server_catalog.length
+          ? state.settingsPayload.server_catalog
+          : catalogFromTargets(state.settingsPayload.monitored_targets);
+        renderServerCatalog(catalog, state.settingsPayload.monitored_targets);
+      }
+    }
+
+    function renderCatalogResult(catalog, selectedTargets, catalogError = "") {
+      const visibleCatalog = catalog.length
+        ? catalog
+        : catalogFromTargets(selectedTargets);
+      renderServerCatalog(visibleCatalog, selectedTargets);
+      elements.catalogStatus.textContent = catalogError
+        ? t("catalog.liveError", {
+            error: catalogError,
+            cached: visibleCatalog.length ? t("catalog.cached") : "",
+          })
+        : t("catalog.loaded", { count: visibleCatalog.length });
+      elements.catalogStatus.className = `catalog-status${catalogError ? " error" : ""}`;
     }
 
     function renderSettings(payload) {
+      state.settingsPayload = payload;
+      const general = payload.general;
+      elements.languageInput.value = general.language;
+      elements.hcloudToken.value = "";
+      elements.customLogoUrl.value = general.custom_logo_url;
+      state.hcloudTokenSet = general.hcloud_token_set;
+      state.hcloudTokenReplaceMode = false;
+      updateHcloudTokenStatus();
       elements.pollIntervalInput.value = String(payload.poll_interval_seconds);
       elements.pollIntervalInput.min = String(payload.limits.min_poll_interval_seconds);
       elements.pollIntervalInput.max = String(payload.limits.max_poll_interval_seconds);
@@ -2463,32 +3935,31 @@
       elements.ntfyUsername.value = ntfy.username;
       elements.ntfyPassword.value = "";
       elements.ntfyToken.value = "";
+      elements.ntfyDashboardUrl.value = ntfy.dashboard_url;
       state.passwordSet = ntfy.password_set;
       state.tokenSet = ntfy.token_set;
-      elements.ntfyPassword.placeholder = state.passwordSet ? "Passwort ist gespeichert" : "";
-      elements.ntfyToken.placeholder = state.tokenSet ? "Token ist gespeichert" : "";
+      elements.ntfyPassword.placeholder = state.passwordSet ? t("ntfy.secretStored") : "";
+      elements.ntfyToken.placeholder = state.tokenSet ? t("ntfy.secretStored") : "";
       elements.ntfyPasswordHelp.textContent = state.passwordSet
-        ? "Gespeichert. Leer lassen, um das Passwort beizubehalten."
-        : "Passwort für den ntfy-Benutzer.";
+        ? t("ntfy.passwordSet")
+        : t("ntfy.passwordEmpty");
       elements.ntfyTokenHelp.textContent = state.tokenSet
-        ? "Gespeichert. Leer lassen, um das Token beizubehalten."
-        : "Zugriffstoken des ntfy-Servers.";
+        ? t("ntfy.tokenSet")
+        : t("ntfy.tokenEmpty");
       elements.ntfyMessage.value = ntfy.message_template;
       state.placeholders = payload.placeholders;
       renderPlaceholderButtons(state.placeholders);
       updateAuthFields();
       updateMessagePreview();
 
-      const catalog = payload.server_catalog.length
-        ? payload.server_catalog
-        : catalogFromTargets(payload.monitored_targets);
-      renderServerCatalog(catalog, payload.monitored_targets);
-      elements.catalogStatus.textContent = payload.catalog_error
-        ? `Live-Katalog nicht verfügbar: ${payload.catalog_error}${catalog.length ? " Gespeicherte Daten werden angezeigt." : ""}`
-        : `${catalog.length} Servertypen von Hetzner geladen.`;
-      elements.catalogStatus.className = `catalog-status${payload.catalog_error ? " error" : ""}`;
+      renderCatalogResult(
+        payload.server_catalog,
+        payload.monitored_targets,
+        payload.catalog_error,
+      );
       state.settingsLoaded = true;
       state.longTermLoadedRange = null;
+      elements.testNtfyButton.disabled = false;
     }
 
     async function loadSettings(force = false) {
@@ -2498,7 +3969,7 @@
       elements.reloadCatalog.classList.add("is-loading");
       elements.serverCatalog.setAttribute("aria-busy", "true");
       if (!state.settingsLoaded) {
-        elements.serverCatalog.innerHTML = '<div class="empty"><span class="spinner" aria-hidden="true"></span><span>Hetzner-Serverkatalog wird geladen …</span></div>';
+        elements.serverCatalog.innerHTML = `<div class="empty"><span class="spinner" aria-hidden="true"></span><span>${t("monitoring.loading")}</span></div>`;
       }
 
       try {
@@ -2506,14 +3977,16 @@
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
         renderSettings(payload);
-        setSettingsStatus("");
+        setSettingsStatus(t("autosave.ready"), "success");
+        setMonitoringStatus(t("autosave.ready"), "success");
       } catch (error) {
         setSettingsStatus(error.message, "error");
+        setMonitoringStatus(error.message, "error");
         if (!state.settingsLoaded) {
           elements.serverCatalog.innerHTML = `
             <div class="global-error" role="alert">
               <span>${escapeHtml(error.message)}</span>
-              <button class="button" type="button" data-retry>Katalog erneut laden</button>
+              <button class="button" type="button" data-retry>${t("catalog.reload")}</button>
             </div>
           `;
           elements.serverCatalog.querySelector("[data-retry]").addEventListener("click", () => loadSettings(true));
@@ -2535,32 +4008,103 @@
         username: elements.ntfyUsername.value,
         password: elements.ntfyPassword.value,
         token: elements.ntfyToken.value,
+        dashboard_url: elements.ntfyDashboardUrl.value,
         message_template: elements.ntfyMessage.value,
       };
     }
 
-    function collectSettings() {
+    function storedGeneralSettings() {
+      const general = state.settingsPayload.general;
+      return {
+        language: general.language,
+        hcloud_token: "",
+        custom_logo_url: general.custom_logo_url,
+      };
+    }
+
+    function storedNtfySettings() {
+      const ntfy = state.settingsPayload.ntfy;
+      return {
+        enabled: ntfy.enabled,
+        domain: ntfy.domain,
+        topic: ntfy.topic,
+        auth_mode: ntfy.auth_mode,
+        username: ntfy.username,
+        password: "",
+        token: "",
+        dashboard_url: ntfy.dashboard_url,
+        message_template: ntfy.message_template,
+      };
+    }
+
+    function collectSettings(scope) {
+      if (!state.settingsPayload) {
+        throw new Error(t("settings.loadFirst"));
+      }
       const monitoredTargets = selectedTargetInputs()
         .filter((input) => input.checked)
         .map((input) => ({
           server_type: input.dataset.serverType,
           location: input.dataset.location,
         }));
+      const savesMonitoring = scope === "monitoring";
       return {
-        poll_interval_seconds: Number(elements.pollIntervalInput.value),
-        monitored_targets: monitoredTargets,
-        ntfy: collectNtfySettings(),
+        general: savesMonitoring
+          ? storedGeneralSettings()
+          : {
+              language: elements.languageInput.value,
+              hcloud_token: elements.hcloudToken.value,
+              custom_logo_url: elements.customLogoUrl.value,
+            },
+        poll_interval_seconds: savesMonitoring
+          ? Number(elements.pollIntervalInput.value)
+          : state.settingsPayload.poll_interval_seconds,
+        monitored_targets: savesMonitoring
+          ? monitoredTargets
+          : state.settingsPayload.monitored_targets,
+        ntfy: savesMonitoring ? storedNtfySettings() : collectNtfySettings(),
       };
     }
 
-    async function saveSettings(event) {
-      event.preventDefault();
-      const payload = collectSettings();
-      elements.saveSettingsButton.disabled = true;
-      elements.saveSettingsButton.classList.add("is-loading");
-      setSettingsStatus("Einstellungen werden gespeichert …");
+    function autoSaveStatus(scope) {
+      return scope === "monitoring" ? setMonitoringStatus : setSettingsStatus;
+    }
+
+    function markAutoSavePending(scope) {
+      state.autoSaveVersions[scope] += 1;
+      autoSaveStatus(scope)(t("autosave.pending"), "pending");
+      return state.autoSaveVersions[scope];
+    }
+
+    function scheduleAutoSave(scope, delay = 700) {
+      if (!state.settingsLoaded) return;
+      const version = markAutoSavePending(scope);
+      clearTimeout(state.autoSaveTimers[scope]);
+      state.autoSaveTimers[scope] = setTimeout(() => {
+        state.autoSaveTimers[scope] = null;
+        state.saveQueue = state.saveQueue
+          .catch(() => undefined)
+          .then(() => saveSettings(scope, version));
+      }, delay);
+    }
+
+    async function saveSettings(scope, version) {
+      const savesMonitoring = scope === "monitoring";
+      const setStatus = autoSaveStatus(scope);
+      const savingKey = savesMonitoring ? "monitoring.saving" : "settings.saving";
+      const savedKey = savesMonitoring ? "monitoring.saved" : "settings.saved";
 
       try {
+        const payload = collectSettings(scope);
+        const tokenSubmitted = !savesMonitoring && Boolean(payload.general.hcloud_token.trim());
+        if (tokenSubmitted) payload.run_initial_check = true;
+        if (version === state.autoSaveVersions[scope]) {
+          setStatus(
+            tokenSubmitted ? t("autosave.savingFirstCheck") : t(savingKey),
+            "saving",
+          );
+        }
+
         const response = await fetch("/api/settings", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -2568,24 +4112,134 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+
         state.passwordSet = result.ntfy.password_set;
         state.tokenSet = result.ntfy.token_set;
-        elements.ntfyPassword.value = "";
-        elements.ntfyToken.value = "";
-        setSettingsStatus(`Gespeichert: ${formatDateTime(result.saved_at)}`, "success");
-        await refreshDashboard();
+        state.hcloudTokenSet = result.general.hcloud_token_set;
+        if (tokenSubmitted) state.hcloudTokenReplaceMode = false;
+        state.settingsPayload = { ...state.settingsPayload, ...result };
+        if (tokenSubmitted && Array.isArray(result.server_catalog)) {
+          renderCatalogResult(
+            result.server_catalog,
+            result.monitored_targets,
+            result.catalog_error,
+          );
+        }
+        if (savesMonitoring) {
+          state.longTermLoadedRange = null;
+        } else {
+          if (version === state.autoSaveVersions[scope]) {
+            elements.ntfyPassword.value = "";
+            elements.ntfyToken.value = "";
+            elements.hcloudToken.value = "";
+          }
+          applyLanguage(result.general.language);
+          applyLogo(result.general.custom_logo_url);
+          elements.setupBanner.hidden = result.general.hcloud_token_set;
+          updateHcloudTokenStatus();
+        }
+
+        if (version === state.autoSaveVersions[scope]) {
+          if (result.initial_check_error) {
+            setStatus(result.initial_check_error, "error");
+          } else {
+            setStatus(t(savedKey, { date: formatDateTime(result.saved_at) }), "success");
+          }
+        }
+        if (savesMonitoring || tokenSubmitted) await refreshDashboard();
       } catch (error) {
-        setSettingsStatus(error.message, "error");
+        if (version === state.autoSaveVersions[scope]) {
+          setStatus(error.message, "error");
+        }
+      }
+    }
+
+    function copyTextFallback(value) {
+      const temporaryInput = document.createElement("textarea");
+      temporaryInput.value = value;
+      temporaryInput.setAttribute("readonly", "");
+      temporaryInput.style.position = "fixed";
+      temporaryInput.style.opacity = "0";
+      document.body.appendChild(temporaryInput);
+      temporaryInput.select();
+      const copied = document.execCommand("copy");
+      temporaryInput.remove();
+      return copied;
+    }
+
+    function resetNtfyTopicConfirmation(clearStatus = false) {
+      clearTimeout(state.ntfyTopicConfirmationTimer);
+      state.ntfyTopicConfirmationTimer = null;
+      delete elements.generateNtfyTopic.dataset.confirming;
+      elements.generateNtfyTopic.classList.remove("is-confirming");
+      elements.generateNtfyTopic.querySelector("span").textContent = t("ntfy.newTopic");
+      if (clearStatus) elements.ntfyTopicCopyStatus.textContent = "";
+    }
+
+    async function generateNtfyTopic() {
+      if (elements.generateNtfyTopic.dataset.confirming !== "true") {
+        elements.generateNtfyTopic.dataset.confirming = "true";
+        elements.generateNtfyTopic.classList.add("is-confirming");
+        elements.generateNtfyTopic.querySelector("span").textContent = t("ntfy.confirmNewTopic");
+        elements.ntfyTopicCopyStatus.textContent = t("ntfy.newTopicConfirm");
+        state.ntfyTopicConfirmationTimer = setTimeout(
+          () => resetNtfyTopicConfirmation(true),
+          8000,
+        );
+        return;
+      }
+
+      resetNtfyTopicConfirmation();
+      elements.generateNtfyTopic.disabled = true;
+      elements.ntfyTopicCopyStatus.textContent = "";
+      try {
+        const response = await fetch("/api/settings/ntfy-topic", {
+          method: "POST",
+        });
+        const result = await response.json();
+        if (!response.ok || !result.topic) {
+          throw new Error(result.error || `HTTP ${response.status}`);
+        }
+        elements.ntfyTopic.value = result.topic;
+        elements.ntfyTopicCopyStatus.textContent = t("ntfy.topicGenerated");
+        scheduleAutoSave("settings", 0);
+      } catch (_error) {
+        elements.ntfyTopicCopyStatus.textContent = t("ntfy.topicGenerateFailed");
       } finally {
-        elements.saveSettingsButton.disabled = false;
-        elements.saveSettingsButton.classList.remove("is-loading");
+        elements.generateNtfyTopic.disabled = false;
+      }
+    }
+
+    async function copyNtfyTopic() {
+      const topic = elements.ntfyTopic.value.trim();
+      if (!topic) {
+        elements.ntfyTopicCopyStatus.textContent = t("ntfy.topicCopyFailed");
+        return;
+      }
+
+      try {
+        let copied = false;
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(topic);
+            copied = true;
+          } catch (_clipboardError) {
+            // The selection fallback also works on local HTTP addresses where
+            // the async Clipboard API may be blocked by browser permissions.
+          }
+        }
+        if (!copied) copied = copyTextFallback(topic);
+        if (!copied) throw new Error("Copy failed");
+        elements.ntfyTopicCopyStatus.textContent = t("ntfy.topicCopied");
+      } catch (_error) {
+        elements.ntfyTopicCopyStatus.textContent = t("ntfy.topicCopyFailed");
       }
     }
 
     async function testNtfy() {
       elements.testNtfyButton.disabled = true;
       elements.testNtfyButton.classList.add("is-loading");
-      setSettingsStatus("ntfy-Verbindung wird getestet …");
+      setNtfyTestStatus(t("ntfy.testing"));
 
       try {
         const response = await fetch("/api/settings/ntfy-test", {
@@ -2595,9 +4249,9 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
-        setSettingsStatus(`${result.message} ${formatDateTime(result.sent_at)}`, "success");
+        setNtfyTestStatus(`${result.message} ${formatDateTime(result.sent_at)}`, "success");
       } catch (error) {
-        setSettingsStatus(error.message, "error");
+        setNtfyTestStatus(error.message, "error");
       } finally {
         elements.testNtfyButton.disabled = false;
         elements.testNtfyButton.classList.remove("is-loading");
@@ -2614,17 +4268,19 @@
     function updateThemeButton() {
       const dark = resolvedTheme() === "dark";
       elements.themeButton.setAttribute("aria-pressed", String(dark));
-      elements.themeButton.querySelector("span").textContent = dark ? "Hellmodus" : "Dunkelmodus";
+      elements.themeButton.querySelector("span").textContent = dark ? t("theme.light") : t("theme.dark");
     }
 
     function activatePage(page, updateHash) {
-      const availablePages = new Set(["dashboard", "long-term", "settings"]);
+      const availablePages = new Set(["dashboard", "long-term", "monitoring", "settings", "instructions"]);
       const activePage = availablePages.has(page) ? page : "dashboard";
+      let activeTab = null;
       for (const tab of elements.pageTabs) {
         const active = tab.dataset.pageTarget === activePage;
         tab.classList.toggle("is-active", active);
         tab.setAttribute("aria-selected", String(active));
         tab.tabIndex = active ? 0 : -1;
+        if (active) activeTab = tab;
       }
       for (const view of elements.pageViews) {
         const active = view.dataset.page === activePage;
@@ -2635,9 +4291,25 @@
         history.pushState(null, "", `#${activePage}`);
       }
       if (activePage === "dashboard") scrollTimelinesToLatest();
-      if (activePage === "settings") void loadSettings();
+      if (activePage === "monitoring" || activePage === "settings") void loadSettings();
       if (activePage === "long-term") void loadLongTerm();
+      activeTab?.scrollIntoView({ block: "nearest", inline: "nearest" });
       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function loadAppConfig() {
+      try {
+        const response = await fetch("/api/app-config", { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+        applyLanguage(payload.general.language);
+        applyLogo(payload.general.custom_logo_url);
+        state.hcloudTokenSet = payload.general.hcloud_token_set;
+        elements.setupBanner.hidden = payload.setup_complete;
+      } catch (_error) {
+        applyLanguage("en");
+        elements.setupBanner.hidden = false;
+      }
     }
 
     for (const tab of elements.pageTabs) {
@@ -2675,14 +4347,44 @@
     elements.selectAllTargets.addEventListener("click", () => {
       for (const input of selectedTargetInputs()) input.checked = true;
       updateSelectedTargetCount();
+      scheduleAutoSave("monitoring", 0);
     });
     elements.clearAllTargets.addEventListener("click", () => {
       for (const input of selectedTargetInputs()) input.checked = false;
       updateSelectedTargetCount();
+      scheduleAutoSave("monitoring", 0);
     });
     elements.ntfyAuthMode.addEventListener("change", updateAuthFields);
+    elements.replaceHcloudToken.addEventListener("click", toggleHcloudTokenReplacement);
+    elements.generateNtfyTopic.addEventListener("click", generateNtfyTopic);
+    elements.copyNtfyTopic.addEventListener("click", copyNtfyTopic);
+    elements.ntfyTopic.addEventListener("input", () => {
+      elements.ntfyTopicCopyStatus.textContent = "";
+    });
     elements.ntfyMessage.addEventListener("input", updateMessagePreview);
-    elements.settingsForm.addEventListener("submit", saveSettings);
+    elements.languageInput.addEventListener("change", () => {
+      applyLanguage(elements.languageInput.value);
+      refreshLocalizedViews();
+    });
+    elements.customLogoUrl.addEventListener("change", () => applyLogo(elements.customLogoUrl.value));
+    for (const [form, scope] of [
+      [elements.monitoringForm, "monitoring"],
+      [elements.settingsForm, "settings"],
+    ]) {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        scheduleAutoSave(scope, 0);
+      });
+      form.addEventListener("input", (event) => {
+        if (event.target.matches('input[type="checkbox"], select')) return;
+        if (event.target.matches('input[type="password"]')) {
+          markAutoSavePending(scope);
+          return;
+        }
+        scheduleAutoSave(scope);
+      });
+      form.addEventListener("change", () => scheduleAutoSave(scope, 0));
+    }
     elements.testNtfyButton.addEventListener("click", testNtfy);
     elements.themeButton.addEventListener("click", () => {
       const nextTheme = resolvedTheme() === "dark" ? "light" : "dark";
@@ -2695,11 +4397,55 @@
     });
     window.addEventListener("hashchange", () => activatePage(window.location.hash.slice(1), false));
 
-    updateThemeButton();
-    renderPlaceholderButtons(state.placeholders);
-    updateMessagePreview();
-    activatePage(window.location.hash.slice(1), false);
-    refreshDashboard();
+    const helpButtons = Array.from(document.querySelectorAll("[data-help-target]"));
+
+    function closeHelpPanels(exceptButton = null) {
+      for (const button of helpButtons) {
+        const help = document.getElementById(button.dataset.helpTarget);
+        if (!help) continue;
+        if (button === exceptButton) continue;
+        help.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    for (const button of helpButtons) {
+      const help = document.getElementById(button.dataset.helpTarget);
+      if (!help) continue;
+      button.setAttribute("aria-controls", help.id);
+      button.addEventListener("click", () => {
+        const willOpen = help.hidden;
+        closeHelpPanels(willOpen ? button : null);
+        help.hidden = !willOpen;
+        button.setAttribute("aria-expanded", String(willOpen));
+      });
+    }
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("[data-help-target], .field-help")) return;
+      closeHelpPanels();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const expandedButton = helpButtons.find(
+        (button) => button.getAttribute("aria-expanded") === "true",
+      );
+      if (!expandedButton) return;
+      closeHelpPanels();
+      expandedButton.focus();
+    });
+
+    async function bootstrap() {
+      await loadAppConfig();
+      updateThemeButton();
+      renderPlaceholderButtons(state.placeholders);
+      updateMessagePreview();
+      activatePage(window.location.hash.slice(1), false);
+      await refreshDashboard();
+    }
+
+    void bootstrap();
   </script>
 </body>
 </html>

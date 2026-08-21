@@ -45,6 +45,8 @@ PRICING_PAYLOAD = {
     ],
 }
 
+MEMORABLE_TOPIC_PATTERN = r"^hetznerwatch_[a-z]+(?:[0-9]{3}[a-z]+){3}$"
+
 
 class HetznerWatchTestCase(unittest.TestCase):
     def setUp(self) -> None:
@@ -53,6 +55,7 @@ class HetznerWatchTestCase(unittest.TestCase):
         app.POLL_INTERVAL_SECONDS = 60
         app.HCLOUD_TOKEN = ""
         app.WAKE_EVENT.clear()
+        app.INITIAL_CHECK_COMPLETED_EVENT.clear()
         app.init_database()
         self.client = app.WEB_APP.test_client()
 
@@ -67,8 +70,71 @@ class HetznerWatchTestCase(unittest.TestCase):
         self.assertTrue(payload["monitoring_enabled"])
         self.assertEqual(payload["poll_interval_seconds"], 60)
         self.assertEqual(len(payload["monitored_targets"]), 3)
-        self.assertIn("HCLOUD_TOKEN", payload["catalog_error"])
+        self.assertEqual(payload["general"]["language"], "en")
+        self.assertFalse(payload["general"]["hcloud_token_set"])
+        self.assertFalse(payload["ntfy"]["enabled"])
+        self.assertEqual(payload["ntfy"]["domain"], "https://ntfy.sh")
+        self.assertRegex(
+            payload["ntfy"]["topic"],
+            MEMORABLE_TOPIC_PATTERN,
+        )
+        self.assertIn("API token", payload["catalog_error"])
         self.assertIn("checked_at", payload["placeholders"])
+
+    def test_existing_empty_ntfy_topic_gets_one_random_default(self) -> None:
+        with sqlite3.connect(app.DATABASE_PATH) as connection:
+            connection.execute(
+                "DELETE FROM app_settings WHERE key = ?",
+                ("ntfy_default_topic_initialized",),
+            )
+            app._save_setting(connection, "ntfy_topic", "")
+
+        app.init_database()
+        generated_topic = app.load_ntfy_config()["topic"]
+        self.assertRegex(generated_topic, MEMORABLE_TOPIC_PATTERN)
+
+        with sqlite3.connect(app.DATABASE_PATH) as connection:
+            app._save_setting(connection, "ntfy_topic", "")
+        app.init_database()
+
+        self.assertEqual(app.load_ntfy_config()["topic"], "")
+
+    def test_memorable_ntfy_topic_endpoint_does_not_replace_saved_topic(self) -> None:
+        stored_topic = app.load_ntfy_config()["topic"]
+
+        response = self.client.post("/api/settings/ntfy-topic")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(response.get_json()["topic"], MEMORABLE_TOPIC_PATTERN)
+        self.assertEqual(app.load_ntfy_config()["topic"], stored_topic)
+        self.assertEqual(len(app.NTFY_TOPIC_WORDS), 128)
+        self.assertEqual(len(set(app.NTFY_TOPIC_WORDS)), 128)
+
+    def test_health_and_public_app_config_do_not_expose_token(self) -> None:
+        with sqlite3.connect(app.DATABASE_PATH) as connection:
+            app._save_setting(connection, "hcloud_token", "super-secret-token")
+
+        health = self.client.get("/api/health")
+        response = self.client.get("/api/app-config")
+
+        self.assertEqual(health.status_code, 200)
+        self.assertEqual(health.get_json(), {"status": "ok"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue(payload["setup_complete"])
+        self.assertTrue(payload["general"]["hcloud_token_set"])
+        self.assertNotIn("hcloud_token", payload["general"])
+
+    def test_favicon_is_linked_and_served(self) -> None:
+        with self.client.get("/") as index_response:
+            self.assertEqual(index_response.status_code, 200)
+            self.assertIn(b'href="/static/favicon.svg?v=2"', index_response.data)
+
+        with self.client.get("/static/favicon.svg") as favicon_response:
+            self.assertEqual(favicon_response.status_code, 200)
+            self.assertEqual(favicon_response.mimetype, "image/svg+xml")
+            self.assertIn(b'#FFAA00', favicon_response.data)
+            self.assertIn(b'#2E2E2E', favicon_response.data)
 
     def test_monitoring_can_be_paused_and_resumed(self) -> None:
         pause_response = self.client.post(
@@ -89,6 +155,52 @@ class HetznerWatchTestCase(unittest.TestCase):
 
         self.assertEqual(resume_response.status_code, 200)
         self.assertTrue(app.get_monitoring_enabled())
+
+    def test_saving_a_new_token_can_run_the_first_check_immediately(self) -> None:
+        refreshed_catalog = app.server_catalog_from_payload(SERVER_TYPES_PAYLOAD)
+        with (
+            patch.object(app, "run_check", return_value="") as run_check,
+            patch.object(
+                app,
+                "load_cached_server_catalog",
+                return_value=refreshed_catalog,
+            ),
+        ):
+            response = self.client.put(
+                "/api/settings",
+                json={
+                    "general": {
+                        "language": "en",
+                        "hcloud_token": "new-api-token",
+                        "custom_logo_url": "",
+                    },
+                    "poll_interval_seconds": 60,
+                    "monitored_targets": [
+                        {"server_type": "cx23", "location": "fsn1"}
+                    ],
+                    "ntfy": {
+                        "enabled": False,
+                        "domain": "https://ntfy.sh",
+                        "topic": "",
+                        "auth_mode": "none",
+                        "username": "",
+                        "password": "",
+                        "token": "",
+                        "dashboard_url": "http://localhost:8080",
+                        "message_template": app.DEFAULT_NTFY_MESSAGE_TEMPLATE,
+                    },
+                    "run_initial_check": True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.get_json()["initial_check_completed"])
+        self.assertEqual(response.get_json()["initial_check_error"], "")
+        self.assertEqual(response.get_json()["server_catalog"], refreshed_catalog)
+        self.assertEqual(response.get_json()["catalog_error"], "")
+        run_check.assert_called_once_with()
+        self.assertTrue(app.WAKE_EVENT.is_set())
+        self.assertTrue(app.INITIAL_CHECK_COMPLETED_EVENT.is_set())
 
     def test_server_catalog_preserves_hetzner_category(self) -> None:
         catalog = app.server_catalog_from_payload(SERVER_TYPES_PAYLOAD)
@@ -140,6 +252,11 @@ class HetznerWatchTestCase(unittest.TestCase):
         response = self.client.put(
             "/api/settings",
             json={
+                "general": {
+                    "language": "de",
+                    "hcloud_token": "new-api-token",
+                    "custom_logo_url": "https://example.com/logo.svg",
+                },
                 "poll_interval_seconds": 45,
                 "monitored_targets": [
                     {"server_type": "cax11", "location": "fsn1"}
@@ -152,12 +269,21 @@ class HetznerWatchTestCase(unittest.TestCase):
                     "username": "monitor",
                     "password": "secret",
                     "token": "",
+                    "dashboard_url": "https://watch.example.com/dashboard",
                     "message_template": "{server_type} {location} {checked_at}",
                 },
             },
         )
 
         self.assertEqual(response.status_code, 200)
+        general = app.load_general_config()
+        self.assertEqual(general["language"], "de")
+        self.assertEqual(general["hcloud_token"], "new-api-token")
+        self.assertEqual(
+            general["custom_logo_url"],
+            "https://example.com/logo.svg",
+        )
+        self.assertNotIn("hcloud_token", response.get_json()["general"])
         self.assertEqual(app.get_poll_interval_seconds(), 45)
         self.assertEqual(
             app.load_monitored_targets(),
@@ -166,6 +292,10 @@ class HetznerWatchTestCase(unittest.TestCase):
         ntfy = app.load_ntfy_config()
         self.assertTrue(ntfy["enabled"])
         self.assertEqual(ntfy["password"], "secret")
+        self.assertEqual(
+            ntfy["dashboard_url"],
+            "https://watch.example.com/dashboard",
+        )
 
     def test_unknown_message_placeholder_is_rejected(self) -> None:
         with self.assertRaises(app.SettingsValidationError):
@@ -199,6 +329,7 @@ class HetznerWatchTestCase(unittest.TestCase):
                         "username": "monitor",
                         "password": "secret",
                         "token": "",
+                        "dashboard_url": "https://watch.example.com/",
                         "message_template": "{server_type} ist {status}.",
                     }
                 },
@@ -208,7 +339,39 @@ class HetznerWatchTestCase(unittest.TestCase):
         _, kwargs = post.call_args
         self.assertEqual(post.call_args.args[0], "https://ntfy.example.com/base/")
         self.assertEqual(kwargs["json"]["topic"], "hetznerwatch")
+        self.assertEqual(kwargs["json"]["click"], "https://watch.example.com/")
         self.assertEqual(kwargs["auth"], ("monitor", "secret"))
+
+    def test_ntfy_rejects_invalid_dashboard_link(self) -> None:
+        config = app.load_ntfy_config()
+        config.update(
+            {
+                "enabled": True,
+                "topic": "hetznerwatch",
+                "dashboard_url": "localhost:8080",
+            }
+        )
+
+        with self.assertRaisesRegex(
+            app.SettingsValidationError,
+            "dashboard link",
+        ):
+            app.validate_ntfy_config(config, config)
+
+    def test_custom_logo_rejects_non_http_url(self) -> None:
+        stored = app.load_general_config()
+
+        with self.assertRaisesRegex(
+            app.SettingsValidationError,
+            "custom logo URL",
+        ):
+            app.validate_general_config(
+                {
+                    "language": "en",
+                    "custom_logo_url": "javascript:alert(1)",
+                },
+                stored,
+            )
 
     def test_transition_to_available_triggers_ntfy_notification(self) -> None:
         app.save_application_settings(
@@ -403,6 +566,15 @@ class HetznerWatchTestCase(unittest.TestCase):
         self.assertEqual(len(location["series"]), 24)
 
     def test_long_term_api_rejects_unknown_range(self) -> None:
+        response = self.client.get("/api/long-term?range=forever")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("range", response.get_json()["error"])
+
+    def test_api_errors_follow_saved_german_language(self) -> None:
+        with sqlite3.connect(app.DATABASE_PATH) as connection:
+            app._save_setting(connection, "language", "de")
+
         response = self.client.get("/api/long-term?range=forever")
 
         self.assertEqual(response.status_code, 400)
