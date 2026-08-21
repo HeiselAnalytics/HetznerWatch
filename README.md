@@ -84,6 +84,67 @@ docker rm -f hetznerwatch
 docker run -d --name hetznerwatch --restart unless-stopped -p 8080:8080 -v hetznerwatch-data:/data ghcr.io/heiselanalytics/hetznerwatch:latest
 ```
 
+## Install on a server with Docker Compose
+
+This option is intended for an always-on Linux server, VPS or NAS. Install
+[Docker Engine](https://docs.docker.com/engine/install/) and the
+[Docker Compose plugin](https://docs.docker.com/compose/install/linux/) first.
+No Git checkout, Python installation or `.env` file is required.
+
+### 1. Download the server configuration
+
+Run these commands on the server:
+
+```bash
+mkdir -p hetznerwatch
+cd hetznerwatch
+curl -fsSL https://raw.githubusercontent.com/HeiselAnalytics/HetznerWatch/main/compose.server.yml -o compose.yml
+```
+
+### 2. Start HetznerWatch
+
+```bash
+docker compose up -d
+```
+
+The configuration downloads the published image, restarts HetznerWatch after a
+server reboot and stores its database in the persistent Docker volume
+`hetznerwatch-data`.
+
+### 3. Open the dashboard safely
+
+The server configuration deliberately listens on `127.0.0.1:8080` only. For
+initial setup, create an SSH tunnel from your computer:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 your-user@your-server
+```
+
+Keep that terminal open and visit
+[http://localhost:8080](http://localhost:8080). For permanent remote access,
+place HetznerWatch behind an authenticated HTTPS reverse proxy. Do not expose
+the dashboard directly to the internet because it controls the service settings
+and does not provide its own user login.
+
+When using ntfy, enter the externally reachable HTTPS dashboard address in
+**Settings → Dashboard URL** so tapping a notification opens HetznerWatch.
+
+### Update, inspect or stop the server installation
+
+Run the commands inside the `hetznerwatch` directory:
+
+```bash
+# Install the latest image
+docker compose pull
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Stop the application; the data volume is retained
+docker compose down
+```
+
 ## Features
 
 - Visual per-check timeline for selected server type/location pairs
