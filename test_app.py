@@ -292,6 +292,11 @@ class HetznerWatchTestCase(unittest.TestCase):
         ntfy = app.load_ntfy_config()
         self.assertTrue(ntfy["enabled"])
         self.assertEqual(ntfy["password"], "secret")
+        public_ntfy = response.get_json()["ntfy"]
+        self.assertTrue(public_ntfy["password_set"])
+        self.assertFalse(public_ntfy["token_set"])
+        self.assertNotIn("password", public_ntfy)
+        self.assertNotIn("token", public_ntfy)
         self.assertEqual(
             ntfy["dashboard_url"],
             "https://watch.example.com/dashboard",

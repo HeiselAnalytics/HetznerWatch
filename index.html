@@ -835,6 +835,14 @@
     .credential-state.is-configured .ui-icon { color: var(--success); }
     .credential-state.is-replacing { border-left-color: var(--highlight); }
 
+    .credential-state.is-error {
+      border-left-color: var(--danger);
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .credential-state.is-error .ui-icon { color: var(--danger); }
+
     .info-button {
       display: inline-grid;
       width: 24px;
@@ -2049,14 +2057,26 @@
               </div>
               <div class="form-field" id="ntfyPasswordField" hidden>
                 <div class="field-heading"><label class="field-label" for="ntfyPassword" data-i18n="ntfy.password">Password</label><button class="info-button" type="button" data-help-target="ntfyPasswordHelpMore" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
-                <input class="text-input" id="ntfyPassword" type="password" autocomplete="current-password">
-                <span class="helper-text" id="ntfyPasswordHelp"></span>
+                <div class="credential-input-shell" id="ntfyPasswordShell">
+                  <input class="text-input" id="ntfyPassword" type="password" autocomplete="current-password" aria-describedby="ntfyPasswordState">
+                  <svg class="ui-icon credential-check" id="ntfyPasswordCheck" aria-hidden="true" viewBox="0 0 24 24" hidden><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="m9 11 3 3L22 4"></path></svg>
+                </div>
+                <div class="credential-state" id="ntfyPasswordState" role="status" aria-live="polite">
+                  <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                  <span id="ntfyPasswordHelp"></span>
+                </div>
                 <div class="field-help" id="ntfyPasswordHelpMore" hidden data-i18n="ntfy.passwordHelp">The password is stored in the local SQLite database and is never returned to the browser.</div>
               </div>
               <div class="form-field" id="ntfyTokenField" hidden>
                 <div class="field-heading"><label class="field-label" for="ntfyToken" data-i18n="ntfy.token">Access token</label><button class="info-button" type="button" data-help-target="ntfyTokenHelpMore" aria-expanded="false" aria-label="Information"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg></button></div>
-                <input class="text-input" id="ntfyToken" type="password" autocomplete="off">
-                <span class="helper-text" id="ntfyTokenHelp"></span>
+                <div class="credential-input-shell" id="ntfyTokenShell">
+                  <input class="text-input" id="ntfyToken" type="password" autocomplete="off" aria-describedby="ntfyTokenState">
+                  <svg class="ui-icon credential-check" id="ntfyTokenCheck" aria-hidden="true" viewBox="0 0 24 24" hidden><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"></path><path d="m9 11 3 3L22 4"></path></svg>
+                </div>
+                <div class="credential-state" id="ntfyTokenState" role="status" aria-live="polite">
+                  <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                  <span id="ntfyTokenHelp"></span>
+                </div>
                 <div class="field-help" id="ntfyTokenHelpMore" hidden data-i18n="ntfy.tokenHelp">Use an access token issued by your ntfy server. It is stored locally and is never returned to the browser.</div>
               </div>
               <div class="form-field full">
@@ -2437,13 +2457,17 @@
         "ntfy.usernameHelp": "The username configured on your ntfy server.",
         "ntfy.password": "Password",
         "ntfy.passwordHelp": "The password is stored in the local SQLite database and is never returned to the browser.",
-        "ntfy.passwordSet": "Stored. Leave empty to keep the password.",
-        "ntfy.passwordEmpty": "Password for the ntfy user.",
+        "ntfy.passwordSet": "Password saved successfully. The stored password remains active until you enter a replacement.",
+        "ntfy.passwordPending": "New password entered. It will be saved automatically when you leave this field.",
+        "ntfy.passwordSaveFailed": "Password was not saved. Your entry is still here; review the error above and try again.",
+        "ntfy.passwordEmpty": "No password is stored. Enter the password for the ntfy user.",
         "ntfy.token": "Access token",
         "ntfy.tokenHelp": "Use an access token issued by your ntfy server. It is stored locally and is never returned to the browser.",
-        "ntfy.tokenSet": "Stored. Leave empty to keep the token.",
-        "ntfy.tokenEmpty": "Access token issued by the ntfy server.",
-        "ntfy.secretStored": "Stored",
+        "ntfy.tokenSet": "Access token saved successfully. The stored token remains active until you enter a replacement.",
+        "ntfy.tokenPending": "New access token entered. It will be saved automatically when you leave this field.",
+        "ntfy.tokenSaveFailed": "Access token was not saved. Your entry is still here; review the error above and try again.",
+        "ntfy.tokenEmpty": "No access token is stored. Enter a token issued by the ntfy server.",
+        "ntfy.secretStored": "••••••••••••",
         "ntfy.dashboard": "Dashboard link",
         "ntfy.dashboardHelp": "This URL opens when you tap the notification. It must be reachable from the receiving device; localhost only works on that same device.",
         "ntfy.message": "Message",
@@ -2708,13 +2732,17 @@
         "ntfy.usernameHelp": "Der auf deinem ntfy-Server konfigurierte Benutzername.",
         "ntfy.password": "Passwort",
         "ntfy.passwordHelp": "Das Passwort wird in der lokalen SQLite-Datenbank gespeichert und nie an den Browser zurückgegeben.",
-        "ntfy.passwordSet": "Gespeichert. Leer lassen, um das Passwort beizubehalten.",
-        "ntfy.passwordEmpty": "Passwort für den ntfy-Benutzer.",
+        "ntfy.passwordSet": "Passwort erfolgreich gespeichert. Es bleibt aktiv, bis du ein neues Passwort eingibst.",
+        "ntfy.passwordPending": "Neues Passwort eingegeben. Es wird automatisch gespeichert, sobald du dieses Feld verlässt.",
+        "ntfy.passwordSaveFailed": "Passwort wurde nicht gespeichert. Deine Eingabe ist noch vorhanden; prüfe den Fehler oben und versuche es erneut.",
+        "ntfy.passwordEmpty": "Es ist kein Passwort gespeichert. Gib das Passwort des ntfy-Benutzers ein.",
         "ntfy.token": "Zugriffstoken",
         "ntfy.tokenHelp": "Verwende einen Zugriffstoken deines ntfy-Servers. Er wird lokal gespeichert und nie an den Browser zurückgegeben.",
-        "ntfy.tokenSet": "Gespeichert. Leer lassen, um den Token beizubehalten.",
-        "ntfy.tokenEmpty": "Zugriffstoken des ntfy-Servers.",
-        "ntfy.secretStored": "Gespeichert",
+        "ntfy.tokenSet": "Zugriffstoken erfolgreich gespeichert. Er bleibt aktiv, bis du einen neuen Token eingibst.",
+        "ntfy.tokenPending": "Neuen Zugriffstoken eingegeben. Er wird automatisch gespeichert, sobald du dieses Feld verlässt.",
+        "ntfy.tokenSaveFailed": "Zugriffstoken wurde nicht gespeichert. Deine Eingabe ist noch vorhanden; prüfe den Fehler oben und versuche es erneut.",
+        "ntfy.tokenEmpty": "Es ist kein Zugriffstoken gespeichert. Gib einen Token des ntfy-Servers ein.",
+        "ntfy.secretStored": "••••••••••••",
         "ntfy.dashboard": "Dashboard-Link",
         "ntfy.dashboardHelp": "Diese URL öffnet sich beim Antippen der Benachrichtigung. Sie muss vom Empfangsgerät erreichbar sein; localhost funktioniert nur auf demselben Gerät.",
         "ntfy.message": "Nachricht",
@@ -2891,7 +2919,13 @@
       ntfyAuthMode: document.querySelector("#ntfyAuthMode"),
       ntfyUsername: document.querySelector("#ntfyUsername"),
       ntfyPassword: document.querySelector("#ntfyPassword"),
+      ntfyPasswordShell: document.querySelector("#ntfyPasswordShell"),
+      ntfyPasswordCheck: document.querySelector("#ntfyPasswordCheck"),
+      ntfyPasswordState: document.querySelector("#ntfyPasswordState"),
       ntfyToken: document.querySelector("#ntfyToken"),
+      ntfyTokenShell: document.querySelector("#ntfyTokenShell"),
+      ntfyTokenCheck: document.querySelector("#ntfyTokenCheck"),
+      ntfyTokenState: document.querySelector("#ntfyTokenState"),
       ntfyDashboardUrl: document.querySelector("#ntfyDashboardUrl"),
       ntfyUsernameField: document.querySelector("#ntfyUsernameField"),
       ntfyPasswordField: document.querySelector("#ntfyPasswordField"),
@@ -3773,6 +3807,59 @@
       elements.ntfyTokenField.hidden = !token;
     }
 
+    function updateNtfyCredentialStatus(saveFailed = false) {
+      const updateCredential = ({
+        input,
+        shell,
+        check,
+        status,
+        help,
+        configured,
+        translationPrefix,
+      }) => {
+        const pending = Boolean(input.value);
+        const showingStoredSecret = configured && !pending;
+        shell.classList.toggle("is-configured", showingStoredSecret);
+        check.hidden = !showingStoredSecret;
+        input.placeholder = showingStoredSecret ? t("ntfy.secretStored") : "";
+        help.textContent = saveFailed && pending
+          ? t(`${translationPrefix}SaveFailed`)
+          : pending
+            ? t(`${translationPrefix}Pending`)
+            : configured
+              ? t(`${translationPrefix}Set`)
+              : t(`${translationPrefix}Empty`);
+        status.className = `credential-state ${
+          saveFailed && pending
+            ? "is-error"
+            : pending
+              ? "is-replacing"
+              : configured
+                ? "is-configured"
+                : "is-required"
+        }`;
+      };
+
+      updateCredential({
+        input: elements.ntfyPassword,
+        shell: elements.ntfyPasswordShell,
+        check: elements.ntfyPasswordCheck,
+        status: elements.ntfyPasswordState,
+        help: elements.ntfyPasswordHelp,
+        configured: state.passwordSet,
+        translationPrefix: "ntfy.password",
+      });
+      updateCredential({
+        input: elements.ntfyToken,
+        shell: elements.ntfyTokenShell,
+        check: elements.ntfyTokenCheck,
+        status: elements.ntfyTokenState,
+        help: elements.ntfyTokenHelp,
+        configured: state.tokenSet,
+        translationPrefix: "ntfy.token",
+      });
+    }
+
     function updateMessagePreview() {
       const values = {
         server_type: "CX23",
@@ -3888,6 +3975,7 @@
       updateThemeButton();
       updateMonitoringControl(state.monitoringEnabled);
       updateHcloudTokenStatus();
+      updateNtfyCredentialStatus();
       updateMessagePreview();
       updateSelectedTargetCount();
       if (state.dashboardPayload) renderDashboard(state.dashboardPayload);
@@ -3938,14 +4026,7 @@
       elements.ntfyDashboardUrl.value = ntfy.dashboard_url;
       state.passwordSet = ntfy.password_set;
       state.tokenSet = ntfy.token_set;
-      elements.ntfyPassword.placeholder = state.passwordSet ? t("ntfy.secretStored") : "";
-      elements.ntfyToken.placeholder = state.tokenSet ? t("ntfy.secretStored") : "";
-      elements.ntfyPasswordHelp.textContent = state.passwordSet
-        ? t("ntfy.passwordSet")
-        : t("ntfy.passwordEmpty");
-      elements.ntfyTokenHelp.textContent = state.tokenSet
-        ? t("ntfy.tokenSet")
-        : t("ntfy.tokenEmpty");
+      updateNtfyCredentialStatus();
       elements.ntfyMessage.value = ntfy.message_template;
       state.placeholders = payload.placeholders;
       renderPlaceholderButtons(state.placeholders);
@@ -4137,6 +4218,7 @@
           applyLogo(result.general.custom_logo_url);
           elements.setupBanner.hidden = result.general.hcloud_token_set;
           updateHcloudTokenStatus();
+          updateNtfyCredentialStatus();
         }
 
         if (version === state.autoSaveVersions[scope]) {
@@ -4150,6 +4232,7 @@
       } catch (error) {
         if (version === state.autoSaveVersions[scope]) {
           setStatus(error.message, "error");
+          if (!savesMonitoring) updateNtfyCredentialStatus(true);
         }
       }
     }
@@ -4355,6 +4438,8 @@
       scheduleAutoSave("monitoring", 0);
     });
     elements.ntfyAuthMode.addEventListener("change", updateAuthFields);
+    elements.ntfyPassword.addEventListener("input", () => updateNtfyCredentialStatus());
+    elements.ntfyToken.addEventListener("input", () => updateNtfyCredentialStatus());
     elements.replaceHcloudToken.addEventListener("click", toggleHcloudTokenReplacement);
     elements.generateNtfyTopic.addEventListener("click", generateNtfyTopic);
     elements.copyNtfyTopic.addEventListener("click", copyNtfyTopic);
