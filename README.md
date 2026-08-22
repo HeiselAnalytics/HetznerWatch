@@ -111,20 +111,20 @@ The configuration downloads the published image, restarts HetznerWatch after a
 server reboot and stores its database in the persistent Docker volume
 `hetznerwatch-data`.
 
-### 3. Open the dashboard safely
+### 3. Open the dashboard
 
-The server configuration deliberately listens on `127.0.0.1:8080` only. For
-initial setup, create an SSH tunnel from your computer:
+The server configuration publishes port `8080` on all network interfaces. If
+your server firewall or hosting provider uses inbound rules, allow TCP port
+`8080`, then open:
 
-```bash
-ssh -L 8080:127.0.0.1:8080 your-user@your-server
+```text
+http://YOUR-SERVER-IP:8080
 ```
 
-Keep that terminal open and visit
-[http://localhost:8080](http://localhost:8080). For permanent remote access,
-place HetznerWatch behind an authenticated HTTPS reverse proxy. Do not expose
-the dashboard directly to the internet because it controls the service settings
-and does not provide its own user login.
+For permanent internet access, use a domain and place HetznerWatch behind an
+authenticated HTTPS reverse proxy. HetznerWatch does not provide its own user
+login, so an unrestricted public port would allow other people to control its
+monitoring and notification settings.
 
 When using ntfy, enter the externally reachable HTTPS dashboard address in
 **Settings → Dashboard URL** so tapping a notification opens HetznerWatch.
